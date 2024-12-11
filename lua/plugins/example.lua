@@ -150,20 +150,11 @@ return {
     "nvim-treesitter/nvim-treesitter",
     enabled = false,
   }, -- Add a comma here
-
-  -- The opts function can also be used to change the default opts:
+  -- disable mason
   {
-    "nvim-lualine/lualine.nvim",
-    event = "VeryLazy",
-    opts = function(_, opts)
-      table.insert(opts.sections.lualine_x, {
-        function()
-          return "😄"
-        end,
-      })
-    end,
-  }, -- Add a comma here
-
+    "williamboman/mason.nvim",
+    enabled = false,
+  },
   -- Or you can return new options to override all the defaults
   {
     "nvim-lualine/lualine.nvim",
