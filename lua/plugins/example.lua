@@ -28,7 +28,7 @@ return {
   },
 
   -- disable trouble
-  { "folke/trouble.nvim", enabled = false },
+  { "folke/trouble.nvim",      enabled = false },
 
   -- override nvim-cmp and add cmp-emoji
   {
@@ -147,12 +147,15 @@ return {
   -- would overwrite `ensure_installed` with the new value.
   -- If you'd rather extend the default config, use the code below instead:
   {
-    "nvim-treesitter/nvim-treesitter",
-    enabled = false,
-  }, -- Add a comma here
-  -- disable mason
-  {
     "williamboman/mason.nvim",
+    enabled = false,
+  },
+  {
+    "williamboman/mason-lspconfig.nvim",
+    enabled = false,
+  },
+  {
+    "nvim-treesitter/nvim-treesitter",
     enabled = false,
   },
   -- Or you can return new options to override all the defaults
