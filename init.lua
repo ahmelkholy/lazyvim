@@ -1,8 +1,8 @@
 -- bootstrap lazy.nvim, LazyVim and your plugins
 require("config.lazy")
 
-require("nvim-treesitter.install").compilers = { "clang" }
---require("nvim-treesitter.install").compilers = { "gcc" }
+vim.opt.linebreak = true
+vim.opt.wrap = true
 require("nvim-treesitter.install").prefer_git = false
+require("nvim-treesitter.install").compilers = { "clang" }
 -- Remove or comment out the following line if present:
--- neovim.stop()

@@ -12,8 +12,6 @@ local enabled = {
   "mini.move",
   "mini.pairs",
   "mini.surround",
-  "nvim-treesitter",
-  "nvim-treesitter-textobjects",
   "nvim-ts-context-commentstring",
   "snacks.nvim",
   "ts-comments.nvim",
@@ -62,9 +60,5 @@ return {
       opts.colorscheme = function() end
       require("lazyvim").setup(opts)
     end,
-  },
-  {
-    "nvim-treesitter/nvim-treesitter",
-    opts = { highlight = { enable = false } },
   },
 }
