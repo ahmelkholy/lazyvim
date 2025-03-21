@@ -3,6 +3,10 @@ if not vim.g.vscode then
   return {}
 end
 
+-- When in VSCode, disable spell checking since VSCode handles it
+vim.opt.spell = false
+vim.opt.spelllang = {}
+
 return {
   "mg979/vim-visual-multi",
   branch = "master",
