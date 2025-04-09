@@ -3,9 +3,12 @@ require("config.lazy")
 
 vim.opt.linebreak = true
 vim.opt.wrap = true
--- require("nvim-treesitter.install").prefer_git = false
--- require("nvim-treesitter.install").compilers = { "clang" }
--- Remove or comment out the following line if present:
--- neovim.stop()
+
+-- Map j/k to gj/gk for better navigation of wrapped lines
+vim.keymap.set('n', 'j', 'gj', { noremap = true })
+vim.keymap.set('n', 'k', 'gk', { noremap = true })
+vim.keymap.set('v', 'j', 'gj', { noremap = true })
+vim.keymap.set('v', 'k', 'gk', { noremap = true })
+
 vim.opt.shell = "pwsh"
 vim.opt.shellcmdflag = "-NoLogo -Command"
