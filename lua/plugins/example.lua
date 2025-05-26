@@ -169,9 +169,6 @@ return {
     end,
   }, -- Add a comma here
 
-  -- Use mini.starter instead of alpha
-  { import = "lazyvim.plugins.extras.ui.mini-starter" }, -- Add a comma here
-
   -- Add jsonls and schemastore packages, and setup treesitter for json, json5, and jsonc
   { import = "lazyvim.plugins.extras.lang.json" }, -- Add a comma here
 
