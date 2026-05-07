@@ -12,12 +12,9 @@
   ],
   "workspace.checkThirdParty": false,
   "workspace.library": [
-    "C:/Program Files/Neovim/share/nvim/runtime",
-    "C:/Program Files/Neovim/share/nvim/runtime/lua",
-    "C:/Program Files/Neovim/share/nvim/runtime/lua/vim",
-    "C:/Users/ahm_e/AppData/Local/nvim-data/lazy/LazyVim/lua",
-    "C:/Users/ahm_e/AppData/Local/nvim-data/lazy/lazy.nvim/lua",
-    "C:/Users/ahm_e/AppData/Local/nvim-data/lazy/snacks.nvim/lua"
+    "$VIMRUNTIME",
+    "$VIMRUNTIME/lua",
+    "$VIMRUNTIME/lua/vim"
   ],
   "completion.callSnippet": "Replace"
 }
