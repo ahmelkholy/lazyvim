@@ -30,7 +30,7 @@ end
 vim.keymap.set({ 'v' }, 'gj', move('j'), { expr = true })
 vim.keymap.set({ 'v' }, 'gk', move('k'), { expr = true })
 
--- Return plugin configurations that disable dashboard plugins and configure vim-visual-multi
+-- Return plugin configurations that disable UI plugins handled by VS Code.
 return {
   -- Disable UI-heavy plugins in VSCode. VS Code owns these surfaces there.
   { "goolord/alpha-nvim", enabled = false },
@@ -41,20 +41,4 @@ return {
   { "nvim-lualine/lualine.nvim", enabled = false },
   { "nvim-mini/mini.starter", enabled = false },
   { "folke/trouble.nvim", enabled = false },
-
-  -- Configure vim-visual-multi for VSCode
-  {
-    "mg979/vim-visual-multi",
-    branch = "master",
-    event = "BufReadPost",
-    config = function()
-      -- Disable default mappings if you want a custom <C-d> setup
-      vim.g.VM_default_mappings = 0
-
-      -- Map Ctrl+D in Normal mode
-      vim.keymap.set("n", "<C-d>", "<Plug>(VM-Find-Under)", {})
-      -- Map Ctrl+D in Visual mode
-      vim.keymap.set("x", "<C-d>", "<Plug>(VM-Find-Subword-Under)", {})
-    end,
-  },
 }

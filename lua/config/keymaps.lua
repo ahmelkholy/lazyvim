@@ -6,5 +6,7 @@
 local map = vim.keymap.set
 
 map({ "n" }, ";", ":", { remap = true })
-vim.keymap.set("n", "<C-d>", "<Plug>(VM-Find-Under)", {})
-vim.keymap.set("x", "<C-d>", "<Plug>(VM-Find-Subword-Under)", {})
+if not vim.g.vscode then
+  vim.keymap.set("n", "<C-d>", "<Plug>(VM-Find-Under)", {})
+  vim.keymap.set("x", "<C-d>", "<Plug>(VM-Find-Subword-Under)", {})
+end
