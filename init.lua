@@ -9,5 +9,7 @@ vim.opt.wrap = true
 -- Remove or comment out the following line if present:
 -- neovim.stop()
 
-vim.opt.shell = "pwsh"
-vim.opt.shellcmdflag = "-NoLogo -Command"
+if vim.fn.executable("pwsh") == 1 then
+  vim.opt.shell = "pwsh"
+  vim.opt.shellcmdflag = "-NoLogo -Command"
+end
