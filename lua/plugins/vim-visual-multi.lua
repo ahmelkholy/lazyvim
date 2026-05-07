@@ -1,4 +1,9 @@
 -- ~/.config/nvim/lua/plugins/vim-visual-multi.lua
+-- Only load this when NOT in VSCode (regular Neovim)
+if vim.g.vscode then
+  return {}
+end
+
 return {
   {
     "mg979/vim-visual-multi",
