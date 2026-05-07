@@ -32,10 +32,15 @@ vim.keymap.set({ 'v' }, 'gk', move('k'), { expr = true })
 
 -- Return plugin configurations that disable dashboard plugins and configure vim-visual-multi
 return {
-  -- Disable dashboard/startup plugins in VSCode
-  { "alpha-nvim", enabled = false },
-  { "dashboard-nvim", enabled = false },
-  { "mini.starter", enabled = false },
+  -- Disable UI-heavy plugins in VSCode. VS Code owns these surfaces there.
+  { "goolord/alpha-nvim", enabled = false },
+  { "akinsho/bufferline.nvim", enabled = false },
+  { "nvimdev/dashboard-nvim", enabled = false },
+  { "nvim-neo-tree/neo-tree.nvim", enabled = false },
+  { "folke/noice.nvim", enabled = false },
+  { "nvim-lualine/lualine.nvim", enabled = false },
+  { "nvim-mini/mini.starter", enabled = false },
+  { "folke/trouble.nvim", enabled = false },
 
   -- Configure vim-visual-multi for VSCode
   {

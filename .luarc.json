@@ -1,0 +1,23 @@
+{
+  "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
+  "runtime.version": "LuaJIT",
+  "runtime.path": [
+    "lua/?.lua",
+    "lua/?/init.lua"
+  ],
+  "diagnostics.globals": [
+    "vim",
+    "Snacks",
+    "LazyVim"
+  ],
+  "workspace.checkThirdParty": false,
+  "workspace.library": [
+    "C:/Program Files/Neovim/share/nvim/runtime",
+    "C:/Program Files/Neovim/share/nvim/runtime/lua",
+    "C:/Program Files/Neovim/share/nvim/runtime/lua/vim",
+    "C:/Users/ahm_e/AppData/Local/nvim-data/lazy/LazyVim/lua",
+    "C:/Users/ahm_e/AppData/Local/nvim-data/lazy/lazy.nvim/lua",
+    "C:/Users/ahm_e/AppData/Local/nvim-data/lazy/snacks.nvim/lua"
+  ],
+  "completion.callSnippet": "Replace"
+}

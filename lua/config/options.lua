@@ -6,6 +6,7 @@
 if vim.g.vscode then
   vim.opt.spell = false
   vim.opt.spelllang = {}
+  vim.opt.shadafile = "NONE"
 end
 
 -- lua/config/options.lua
