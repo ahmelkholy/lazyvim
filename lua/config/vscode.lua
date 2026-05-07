@@ -3,10 +3,6 @@ if not vim.g.vscode then
   return {}
 end
 
--- When in VSCode, disable spell checking since VSCode handles it
-vim.opt.spell = false
-vim.opt.spelllang = {}
-
 -- Movement functions for VSCode
 local function move(d)
   return function()
