@@ -40,8 +40,12 @@ Install these first:
 
 Optional but recommended:
 
-- A Nerd Font if you use icons in your VS Code theme or terminal.
+- JetBrainsMono Nerd Font if you use icons in your VS Code theme or terminal.
 - PowerShell 7, because this config sets `vim.opt.shell = "pwsh"`.
+
+This repo's VS Code workspace settings use `JetBrainsMono Nerd Font Mono` for
+the editor and integrated terminal. If icons show as boxes, install that Nerd
+Font and restart VS Code or your terminal.
 
 ## Install On Windows
 
@@ -58,6 +62,12 @@ Install Neovim:
 
 ```powershell
 winget install Neovim.Neovim
+```
+
+Install the font used for icons:
+
+```powershell
+winget install DEVCOM.JetBrainsMonoNerdFont
 ```
 
 Install the VSCode Neovim extension:
