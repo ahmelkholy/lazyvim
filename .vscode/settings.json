@@ -4,6 +4,8 @@
  "terminal.integrated.defaultProfile.linux": "zsh",
  "vscode-neovim.neovimExecutablePaths.linux": "/usr/bin/nvim",
  "vscode-neovim.neovimInitVimPaths.linux": "/home/ahm_e/.config/nvim/init.lua",
+ "workbench.colorTheme": "Monokai",
+ "workbench.iconTheme": "material-icon-theme",
  "workbench.colorCustomizations": {
   "editorCursor.foreground": "#e9dbb7",
   "activityBarBadge.background": "#e9dbb7",

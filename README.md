@@ -51,6 +51,8 @@ Installed on this machine:
 - GCC and make
 - JetBrainsMono Nerd Font installed under `~/.local/share/fonts`
 - VSCode Neovim extension installed in the SSH VS Code server
+- VS Code Material Icon Theme installed and selected
+- Monokai selected as the default Neovim and VS Code theme
 
 Still recommended for full comfort:
 
