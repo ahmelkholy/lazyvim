@@ -12,6 +12,8 @@
       "statusBar.background": "#262626",
       "statusBar.foreground": "#e9dbb7"
     },
-    "powershell.cwd": "nvim"
+    "terminal.integrated.defaultProfile.linux": "zsh",
+    "vscode-neovim.neovimExecutablePaths.linux": "/usr/bin/nvim",
+    "vscode-neovim.neovimInitVimPaths.linux": "/home/ahm_e/.config/nvim/init.lua"
   }
 }

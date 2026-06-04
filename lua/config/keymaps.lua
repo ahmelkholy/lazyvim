@@ -1,5 +1,4 @@
 -- Keymaps are automatically loaded on the VeryLazy event
--- filepath: /C:/Users/ahm_e/AppData/Local/nvim/lua/config/keymaps.lua
 -- Default keymaps that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/keymaps.lua
 -- Add any additional keymaps here
 

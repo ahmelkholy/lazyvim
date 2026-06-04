@@ -8,8 +8,3 @@ vim.opt.wrap = true
 -- require("nvim-treesitter.install").compilers = { "clang" }
 -- Remove or comment out the following line if present:
 -- neovim.stop()
-
-if vim.fn.executable("pwsh") == 1 then
-  vim.opt.shell = "pwsh"
-  vim.opt.shellcmdflag = "-NoLogo -Command"
-end

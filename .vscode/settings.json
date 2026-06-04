@@ -1,6 +1,9 @@
 {
  "editor.fontFamily": "'JetBrainsMono Nerd Font Mono', 'JetBrains Mono', Menlo, Consolas, monospace",
  "terminal.integrated.fontFamily": "JetBrainsMono Nerd Font Mono",
+ "terminal.integrated.defaultProfile.linux": "zsh",
+ "vscode-neovim.neovimExecutablePaths.linux": "/usr/bin/nvim",
+ "vscode-neovim.neovimInitVimPaths.linux": "/home/ahm_e/.config/nvim/init.lua",
  "workbench.colorCustomizations": {
   "editorCursor.foreground": "#e9dbb7",
   "activityBarBadge.background": "#e9dbb7",
