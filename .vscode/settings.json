@@ -4,13 +4,13 @@
  "terminal.integrated.defaultProfile.linux": "zsh",
  "vscode-neovim.neovimExecutablePaths.linux": "/usr/bin/nvim",
  "vscode-neovim.neovimInitVimPaths.linux": "/home/ahm_e/.config/nvim/init.lua",
- "workbench.colorTheme": "Monokai",
+ "workbench.colorTheme": "Gruvbox Dark Medium",
  "workbench.iconTheme": "material-icon-theme",
  "workbench.colorCustomizations": {
-  "editorCursor.foreground": "#e9dbb7",
-  "activityBarBadge.background": "#e9dbb7",
-  "activityBarBadge.foreground": "#262626",
-  "statusBar.background": "#262626",
-  "statusBar.foreground": "#e9dbb7"
+  "editorCursor.foreground": "#fabd2f",
+  "activityBarBadge.background": "#fabd2f",
+  "activityBarBadge.foreground": "#282828",
+  "statusBar.background": "#282828",
+  "statusBar.foreground": "#ebdbb2"
  }
 }

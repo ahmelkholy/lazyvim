@@ -10,9 +10,11 @@ available. The config lives in the normal Linux path:
 ## Status
 
 - Branch: `linux`
-- Main target: Arch Linux standalone Neovim and VSCode Neovim
+- Main target: Arch Linux standalone Neovim, VSCode Neovim, and daily development
 - Base: [LazyVim](https://www.lazyvim.org/)
 - Local Neovim path: `/usr/bin/nvim`
+- Default theme: Gruvbox
+- Default icon theme in VS Code: Material Icon Theme
 
 ## What This Config Does
 
@@ -25,6 +27,11 @@ available. The config lives in the normal Linux path:
 - Disables VS Code-conflicting UI and Treesitter plugins only when running inside
   the VSCode Neovim extension.
 - Adds Linux VS Code settings for the Neovim executable and init file.
+- Adds LazyVim extras for Python, Julia, C/C++, CMake, Docker, Git, SQL, YAML,
+  TypeScript, DAP, projects, Aerial, Overseer, refactoring, tests, and Prettier.
+- Adds run shortcuts for Julia, Python, Make, C, and C++ files.
+- Uses a Neovim-local npm cache for Mason so Node-based language tools do not
+  depend on a damaged or root-owned `~/.npm` cache.
 
 ## Installed Location
 
@@ -48,11 +55,17 @@ Installed on this machine:
 - lazygit
 - Node.js and npm
 - unzip
-- GCC and make
+- GCC, G++, and make
+- Julia 1.12.6 through juliaup
+- Julia LanguageServer, SymbolServer, StaticLint, and JuliaFormatter in
+  `~/.julia/environments/nvim-lspconfig`
+- Mason language tools for Python, C/C++, CMake, shell, Lua, JSON, YAML,
+  TypeScript, Docker, Markdown, TOML, SQL, formatting, and debugging
 - JetBrainsMono Nerd Font installed under `~/.local/share/fonts`
 - VSCode Neovim extension installed in the SSH VS Code server
 - VS Code Material Icon Theme installed and selected
-- Monokai selected as the default Neovim and VS Code theme
+- VS Code Gruvbox theme extension installed
+- Gruvbox selected as the default Neovim and VS Code theme
 
 Still recommended for full comfort:
 
@@ -67,6 +80,17 @@ sudo pacman -S --needed wl-clipboard xclip
 ```
 
 This command requires your sudo password.
+
+## Development Shortcuts
+
+- `<leader>rj`: open a Julia REPL with `--project=@.`
+- `<leader>rJ`: run the current Julia file with `--project=@.`
+- `<leader>rp`: open a Python REPL, preferring the active virtualenv
+- `<leader>rP`: run the current Python file
+- `<leader>rm`: run `make`
+- `<leader>rM`: prompt for a `make` target
+- `<leader>rc`: build and run the current C file with GCC
+- `<leader>rC`: build and run the current C++ file with G++
 
 ## First Run
 

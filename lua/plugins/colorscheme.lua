@@ -1,12 +1,12 @@
 return {
-  -- Monokai theme.
-  { "tanvirtin/monokai.nvim", priority = 1000 },
+  -- Gruvbox theme.
+  { "ellisonleao/gruvbox.nvim", priority = 1000 },
 
-  -- Configure LazyVim to load Monokai.
+  -- Configure LazyVim to load Gruvbox.
   {
     "LazyVim/LazyVim",
     opts = {
-      colorscheme = "monokai",
+      colorscheme = "gruvbox",
     },
   },
 }
