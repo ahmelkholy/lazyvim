@@ -66,6 +66,7 @@ Installed on this machine:
 - VS Code Material Icon Theme installed and selected
 - VS Code Gruvbox theme extension installed
 - Gruvbox selected as the default Neovim and VS Code theme
+- tmux 3.6b and `/home/ahm_e/bin/vscode-tmux` for persistent VS Code terminals
 
 Still recommended for full comfort:
 
@@ -91,6 +92,20 @@ This command requires your sudo password.
 - `<leader>rM`: prompt for a `make` target
 - `<leader>rc`: build and run the current C file with GCC
 - `<leader>rC`: build and run the current C++ file with G++
+
+## tmux
+
+VS Code terminals use the `tmux` profile by default. The profile launches
+`/home/ahm_e/bin/vscode-tmux`, which attaches to a workspace-named session or
+creates one when needed.
+
+Inside standalone Neovim running under tmux:
+
+- `<C-h>`: move left across Neovim splits or tmux panes
+- `<C-j>`: move down across Neovim splits or tmux panes
+- `<C-k>`: move up across Neovim splits or tmux panes
+- `<C-l>`: move right across Neovim splits or tmux panes
+- `<C-\>`: jump to the previous tmux pane
 
 ## First Run
 

@@ -12,7 +12,18 @@
       "statusBar.background": "#282828",
       "statusBar.foreground": "#ebdbb2"
     },
-    "terminal.integrated.defaultProfile.linux": "zsh",
+    "terminal.integrated.defaultProfile.linux": "tmux",
+    "terminal.integrated.profiles.linux": {
+      "tmux": {
+        "path": "/home/ahm_e/bin/vscode-tmux",
+        "args": [
+          "${workspaceFolder}"
+        ]
+      },
+      "zsh": {
+        "path": "/usr/bin/zsh"
+      }
+    },
     "vscode-neovim.neovimExecutablePaths.linux": "/usr/bin/nvim",
     "vscode-neovim.neovimInitVimPaths.linux": "/home/ahm_e/.config/nvim/init.lua",
     "workbench.colorTheme": "Gruvbox Dark Medium",
