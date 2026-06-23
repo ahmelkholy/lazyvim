@@ -4,27 +4,37 @@ if not vim.g.vscode then
 end
 
 -- Movement functions for VSCode
+local function vscode_action(name)
+  return function()
+    require("vscode-neovim").action(name)
+  end
+end
+
 local function move(d)
   return function()
     -- Only works in charwise visual mode
-    if vim.api.nvim_get_mode().mode ~= 'v' then return 'g' .. d end
-    require('vscode-neovim').action('cursorMove', {
+    if vim.api.nvim_get_mode().mode ~= "v" then
+      return "g" .. d
+    end
+    require("vscode-neovim").action("cursorMove", {
       args = {
         {
-          to = d == 'j' and 'down' or 'up',
-          by = 'wrappedLine',
+          to = d == "j" and "down" or "up",
+          by = "wrappedLine",
           value = vim.v.count1,
           select = true,
         },
       },
     })
-    return '<Ignore>'
+    return "<Ignore>"
   end
 end
 
 -- Set up movement keymaps
-vim.keymap.set({ 'v' }, 'gj', move('j'), { expr = true })
-vim.keymap.set({ 'v' }, 'gk', move('k'), { expr = true })
+vim.keymap.set({ "v" }, "gj", move("j"), { expr = true })
+vim.keymap.set({ "v" }, "gk", move("k"), { expr = true })
+vim.keymap.set("n", "u", vscode_action("undo"), { silent = true, desc = "VSCode undo" })
+vim.keymap.set("n", "<C-r>", vscode_action("redo"), { silent = true, desc = "VSCode redo" })
 
 -- Return plugin configurations that disable UI plugins handled by VS Code.
 return {

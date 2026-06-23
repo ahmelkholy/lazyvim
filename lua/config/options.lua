@@ -7,6 +7,8 @@ if vim.g.vscode then
   vim.opt.spell = false
   vim.opt.spelllang = {}
   vim.opt.shadafile = "NONE"
+  vim.opt.report = 999999
+  vim.opt.shortmess:append({ W = true, c = true, C = true, F = true, S = true })
 end
 
 -- lua/config/options.lua
