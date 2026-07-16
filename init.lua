@@ -10,6 +10,5 @@ vim.opt.wrap = true
 -- neovim.stop()
 
 if vim.fn.executable("pwsh") == 1 then
-  vim.opt.shell = "pwsh"
-  vim.opt.shellcmdflag = "-NoLogo -Command"
+  require("lazyvim.util.terminal").setup("pwsh")
 end
