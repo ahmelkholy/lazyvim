@@ -4,14 +4,13 @@
 
 local map = vim.keymap.set
 
-map("n", ";", ":", { remap = true, desc = "Command mode" })
-
 if vim.g.vscode then
   return
 end
 
--- VS Code muscle-memory bridge for standalone Neovim. VS Code behavior wins
--- when the user's keybindings intentionally overlap with native Neovim keys.
+-- A conservative VS Code bridge for standalone Neovim. Only keys that do not
+-- replace core Neovim motions, undo, window, scrolling, or terminal controls
+-- belong here.
 local function toggle_explorer()
   vim.cmd("Neotree toggle reveal_force_cwd dir=" .. vim.fn.fnameescape(LazyVim.root()))
 end
@@ -47,36 +46,11 @@ local function copy_current_path()
   vim.notify("Copied: " .. path)
 end
 
-local function run_current_file(command, args)
-  local executable = vim.fn.exepath(command)
-  if executable == "" then
-    vim.notify(command .. " is not installed or is not on PATH", vim.log.levels.WARN)
-    return
-  end
-
-  local path = vim.api.nvim_buf_get_name(0)
-  if path == "" then
-    vim.notify("The current buffer has no file path", vim.log.levels.WARN)
-    return
-  end
-
-  vim.cmd.write()
-  local argv = { executable }
-  vim.list_extend(argv, args and args(path) or { path })
-  Snacks.terminal(argv, { cwd = LazyVim.root() })
-end
-
 local function paste_terminal_clipboard()
   local channel = vim.b.terminal_job_id
   if channel then
     vim.api.nvim_chan_send(channel, vim.fn.getreg("+"))
   end
-end
-
-local function new_chat()
-  local chat = require("CopilotChat")
-  chat.reset()
-  chat.open()
 end
 
 local function markdown_links()
@@ -95,23 +69,15 @@ map("n", "<C-S-f>", toggle_explorer, { desc = "Toggle activity/sidebar" })
 map("n", "<A-f>", toggle_explorer, { desc = "Explorer: toggle and reveal file" })
 map("n", "<F2>", reveal_explorer, { desc = "Explorer: reveal active file" })
 
-map("n", "<C-p>", LazyVim.pick("files"), { desc = "Quick Open: files" })
 map("n", "<C-S-p>", "<cmd>FzfLua commands<cr>", { desc = "Command Palette" })
 map("n", "<C-A-q>", LazyVim.pick("live_grep"), { desc = "Search: find in files" })
 
-map("n", "<C-q>", function()
-  Snacks.bufdelete()
-end, { desc = "Close active editor" })
-map("n", "<C-w>", "<cmd>vsplit<cr>", { desc = "Split editor right" })
 map("n", "<C-Tab>", "<cmd>bnext<cr>", { desc = "Next editor" })
 map("n", "<C-S-Tab>", "<cmd>bprevious<cr>", { desc = "Previous editor" })
 map("n", "<C-S-n>", "<cmd>tab split<cr>", { desc = "Move editor to new tab" })
 map("n", "<S-A-q>", "<cmd>confirm qall<cr>", { desc = "Close Neovim" })
-map("n", "<C-r>", LazyVim.pick("oldfiles"), { desc = "Open recent" })
-
 map({ "n", "t" }, "<A-t>", terminal, { desc = "Toggle terminal" })
 map({ "n", "t" }, "<C-A-b>", terminal, { desc = "Toggle terminal panel" })
-map({ "n", "t" }, "<C-j>", terminal, { desc = "Toggle panel" })
 map("n", "<A-b>", new_terminal, { desc = "New terminal" })
 map({ "n", "t" }, "<C-S-b>", new_terminal, { desc = "New terminal" })
 
@@ -124,7 +90,6 @@ end
 
 map("t", "<S-CR>", send_terminal_continuation, { desc = "Terminal: continue command" })
 map("t", "<C-CR>", send_terminal_continuation, { desc = "Terminal: continue command" })
-map("t", "<C-v>", paste_terminal_clipboard, { desc = "Terminal: paste" })
 map("t", "<C-S-v>", paste_terminal_clipboard, { desc = "Terminal: paste" })
 map("t", "<A-Up>", [[<C-\><C-n><C-w>w]], { desc = "Terminal: focus next" })
 map("t", "<A-Down>", [[<C-\><C-n><C-w>W]], { desc = "Terminal: focus previous" })
@@ -136,9 +101,6 @@ end, { desc = "Format document" })
 map("n", "<S-A-2>", "<C-w>v", { remap = true, desc = "Split editor right" })
 map("n", "<C-A-w>", "<C-w>H", { remap = true, desc = "Move editor group left" })
 map("n", "<C-A-e>", "<C-w>L", { remap = true, desc = "Move editor group right" })
-map("n", "<C-\\>", function()
-  Snacks.zen.zoom()
-end, { desc = "Toggle editor widths" })
 map("n", "<C-A-t>", function()
   Snacks.zen.zoom()
 end, { desc = "Toggle maximized panel" })
@@ -187,7 +149,6 @@ map({ "n", "x" }, "<C-A-a>", "<leader>aa", { remap = true, desc = "AI chat" })
 map({ "n", "x" }, "<C-S-i>", "<leader>aq", { remap = true, desc = "AI quick chat" })
 map({ "n", "x" }, "<S-A-a>", "<leader>ap", { remap = true, desc = "AI prompt actions" })
 map({ "n", "x" }, "<C-A-c>", "<leader>aa", { remap = true, desc = "AI chat" })
-map({ "n", "x" }, "<C-l>", new_chat, { desc = "AI: new chat" })
 map("n", "<A-g>", function()
   cli_terminal("gemini")
 end, { desc = "Gemini CLI" })
@@ -205,70 +166,3 @@ map("n", "<C-A-n>", function()
 end, { desc = "MATLAB terminal" })
 
 map("n", "<leader>W", "<cmd>noautocmd write<cr>", { desc = "Save without formatting" })
-map("n", "<C-k>", "<cmd>noautocmd write<cr>", { desc = "Save without formatting" })
-map("n", "<leader>ur", "<cmd>redo<cr>", { desc = "Redo" })
-
-for _, lhs in ipairs({ "<C-/>", "<C-_>" }) do
-  map("n", lhs, "gcc", { remap = true, desc = "Toggle line comment" })
-  map("x", lhs, "gc", { remap = true, desc = "Toggle selection comment" })
-end
-
--- Keep window management available after Ctrl+W/Ctrl+J/K/L adopt VS Code behavior.
-map("n", "<leader>wv", "<C-w>v", { remap = true, desc = "Window: split right" })
-map("n", "<leader>ws", "<C-w>s", { remap = true, desc = "Window: split below" })
-map("n", "<leader>wh", "<C-w>h", { remap = true, desc = "Window: left" })
-map("n", "<leader>wj", "<C-w>j", { remap = true, desc = "Window: down" })
-map("n", "<leader>wk", "<C-w>k", { remap = true, desc = "Window: up" })
-map("n", "<leader>wl", "<C-w>l", { remap = true, desc = "Window: right" })
-map("n", "<leader>wc", "<C-w>c", { remap = true, desc = "Window: close" })
-map("n", "<leader>w=", "<C-w>=", { remap = true, desc = "Window: equalize" })
-
-vim.api.nvim_create_autocmd("FileType", {
-  group = vim.api.nvim_create_augroup("vscode_bridge_filetypes", { clear = true }),
-  pattern = "*",
-  callback = function(event)
-    local ft = vim.bo[event.buf].filetype
-    local opts = { buffer = event.buf }
-
-    if ft == "markdown" then
-      map("n", "<A-b>", "<cmd>MarkdownPreviewToggle<cr>", vim.tbl_extend("force", opts, { desc = "Markdown preview" }))
-      map("n", "<C-b>", "<cmd>MarkdownPreviewToggle<cr>", vim.tbl_extend("force", opts, { desc = "Markdown preview" }))
-    elseif ft == "python" then
-      map("n", "<C-b>", function()
-        run_current_file("python3")
-      end, vim.tbl_extend("force", opts, { desc = "Run Python file" }))
-    elseif ft == "julia" then
-      map("n", "<C-b>", function()
-        run_current_file("julia", function(path)
-          return { "--project=@.", path }
-        end)
-      end, vim.tbl_extend("force", opts, { desc = "Run Julia file" }))
-    elseif ft == "r" then
-      map("n", "<C-b>", function()
-        run_current_file("Rscript")
-      end, vim.tbl_extend("force", opts, { desc = "Run R source" }))
-    elseif ft == "tex" then
-      map("n", "<C-b>", "<cmd>VimtexCompile<cr>", vim.tbl_extend("force", opts, { desc = "Build LaTeX" }))
-    elseif ft == "html" then
-      map("n", "<C-b>", function()
-        vim.ui.open(vim.api.nvim_buf_get_name(event.buf))
-      end, vim.tbl_extend("force", opts, { desc = "Open HTML in browser" }))
-    elseif ft == "csv" then
-      map("n", "<C-b>", function()
-        vim.ui.open(vim.api.nvim_buf_get_name(event.buf))
-      end, vim.tbl_extend("force", opts, { desc = "Open CSV externally" }))
-    elseif ft == "matlab" then
-      map("n", "<C-b>", function()
-        run_current_file("matlab", function(path)
-          return { "-batch", "run('" .. path:gsub("'", "''") .. "')" }
-        end)
-      end, vim.tbl_extend("force", opts, { desc = "Run MATLAB file" }))
-    elseif ft == "copilot-chat" then
-      map("n", "<A-.>", "<cmd>CopilotChatModels<cr>", vim.tbl_extend("force", opts, { desc = "AI model picker" }))
-    end
-  end,
-})
-
--- Preserve the user's existing multi-cursor workflow.
-map("n", "<C-d>", "<Plug>(VM-Find-Under)")
-map("x", "<C-d>", "<Plug>(VM-Find-Subword-Under)")

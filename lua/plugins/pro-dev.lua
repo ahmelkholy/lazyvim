@@ -1,31 +1,3 @@
-local function root()
-  return LazyVim and LazyVim.root and LazyVim.root.get() or vim.uv.cwd()
-end
-
-local function exe(name)
-  local path = vim.fn.exepath(name)
-  return path ~= "" and path or name
-end
-
-local function current_file()
-  return vim.api.nvim_buf_get_name(0)
-end
-
-local function python_cmd()
-  local venv = vim.env.VIRTUAL_ENV
-  if venv and venv ~= "" then
-    local candidate = venv .. "/bin/python"
-    if vim.fn.executable(candidate) == 1 then
-      return candidate
-    end
-  end
-  return exe("python3")
-end
-
-local function terminal(cmd)
-  Snacks.terminal(cmd, { cwd = root() })
-end
-
 return {
   {
     "mason-org/mason.nvim",
@@ -167,77 +139,6 @@ return {
         "make",
         "python",
         "sql",
-      },
-    },
-  },
-
-  {
-    "folke/snacks.nvim",
-    keys = {
-      {
-        "<leader>rj",
-        function()
-          terminal({ exe("julia"), "--project=@." })
-        end,
-        desc = "Julia REPL",
-      },
-      {
-        "<leader>rJ",
-        function()
-          terminal({ exe("julia"), "--project=@.", current_file() })
-        end,
-        desc = "Run Julia File",
-        ft = "julia",
-      },
-      {
-        "<leader>rp",
-        function()
-          terminal({ python_cmd() })
-        end,
-        desc = "Python REPL",
-      },
-      {
-        "<leader>rP",
-        function()
-          terminal({ python_cmd(), current_file() })
-        end,
-        desc = "Run Python File",
-        ft = "python",
-      },
-      {
-        "<leader>rm",
-        function()
-          terminal({ "make" })
-        end,
-        desc = "Run Make",
-      },
-      {
-        "<leader>rM",
-        function()
-          local target = vim.fn.input("make target: ")
-          terminal(target ~= "" and { "make", target } or { "make" })
-        end,
-        desc = "Run Make Target",
-      },
-      {
-        "<leader>rc",
-        function()
-          local file = current_file()
-          local out = vim.fn.fnamemodify(file, ":r")
-          terminal({ "sh", "-lc", ("gcc %q -O0 -g -Wall -Wextra -o %q && %q"):format(file, out, out) })
-        end,
-        desc = "Build and Run C File",
-        ft = "c",
-      },
-      {
-        "<leader>rC",
-        function()
-          local file = current_file()
-          local out = vim.fn.fnamemodify(file, ":r")
-          terminal({ "sh", "-lc", ("g++ %q -O0 -g -Wall -Wextra -o %q && %q"):format(file, out, out) })
-        end,
-        desc = "Build and Run C++ File",
-        ft = "cpp",
       },
     },
   },

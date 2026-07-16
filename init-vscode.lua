@@ -17,8 +17,6 @@ vim.opt.shortmess:append({ W = true, c = true, C = true, F = true, S = true })
 
 local map = vim.keymap.set
 
-map("n", ";", ":", { desc = "Command mode" })
-
 if not vim.g.vscode then
   return
 end
