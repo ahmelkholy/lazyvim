@@ -5,6 +5,31 @@
 vim.g.lazyvim_python_lsp = "pyright"
 vim.g.lazyvim_python_ruff = "ruff"
 
+-- Graphical Neovim clients can apply this directly. Terminal Neovim inherits
+-- its font from the terminal (the VS Code workspace uses the same Nerd Font).
+vim.opt.guifont = "JetBrainsMono Nerd Font Mono:h14"
+
+if not vim.g.vscode then
+  -- One global statusline plus one title bar per window is clearer than a
+  -- shared buffer strip when several editor panes are visible.
+  vim.opt.laststatus = 3
+  vim.opt.showtabline = 1
+
+  if vim.fn.exists("+winborder") == 1 then
+    vim.opt.winborder = "rounded"
+  end
+
+  vim.opt.fillchars:append({
+    horiz = "─",
+    horizdown = "┬",
+    horizup = "┴",
+    vert = "│",
+    vertleft = "┤",
+    vertright = "├",
+    verthoriz = "┼",
+  })
+end
+
 -- Mason-installed tools must also be available to health checks and plugins
 -- that execute before Mason itself is loaded.
 local mason_bin = vim.fn.stdpath("data") .. "/mason/bin"

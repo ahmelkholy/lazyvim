@@ -32,6 +32,12 @@ WhichKey will show the available groups and actions.
 
 ## Windows and Panes
 
+On a bare `nvim` start, the config opens a familiar workspace: Explorer on the
+left and two independent editor panes beside it. Each pane has its own title at
+the top, while the bottom status line remains global. Opening a file, directory,
+diff, stdin stream, or saved session keeps the layout requested on the command
+line instead of forcing this workspace.
+
 Think of `Ctrl+W` as "window command", then press the action:
 
 | Action | Key |
@@ -42,9 +48,15 @@ Think of `Ctrl+W` as "window command", then press the action:
 | Close current window | `Ctrl+W c` |
 | Equalize sizes | `Ctrl+W =` |
 | Maximize/restore | `<leader>wm` |
+| Rebuild the default workspace | `<leader>wL` or `:WorkspaceLayout` |
 
 These navigation keys also cross tmux panes, so the same movement works inside
 and outside Neovim splits.
+
+The title above each pane is the ownership marker that VS Code normally provides
+with editor-group tabs. `●` means that pane's buffer has unsaved changes, and
+`󰌾` means it is read-only. Actual Neovim tab pages appear at the very top only
+when more than one exists; the old shared buffer strip is intentionally absent.
 
 ## Files, Buffers, and Search
 

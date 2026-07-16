@@ -25,7 +25,7 @@ return {
         },
       },
       window = {
-        width = 36,
+        width = 34,
         mappings = {
           -- Match the user's VS Code Explorer bindings.
           ["y"] = "copy_to_clipboard",
