@@ -12,6 +12,17 @@ return {
           leave_dirs_open = true,
         },
         use_libuv_file_watcher = true,
+        filtered_items = {
+          visible = true,
+          hide_dotfiles = false,
+          hide_gitignored = false,
+          hide_ignored = false,
+          hide_hidden = false,
+          hide_by_name = {},
+          hide_by_pattern = {},
+          never_show = {},
+          never_show_by_pattern = {},
+        },
       },
       window = {
         width = 36,
@@ -19,6 +30,8 @@ return {
           -- Match the user's VS Code Explorer bindings.
           ["y"] = "copy_to_clipboard",
           ["p"] = "paste_from_clipboard",
+          ["d"] = "cut_to_clipboard",
+          ["x"] = "delete",
           ["r"] = "rename",
           ["n"] = "add",
           ["N"] = "add_directory",
@@ -35,9 +48,23 @@ return {
     },
   },
   {
+    "ibhagwan/fzf-lua",
+    opts = {
+      files = {
+        hidden = true,
+        no_ignore = true,
+        follow = true,
+      },
+      grep = {
+        hidden = true,
+        no_ignore = true,
+        follow = true,
+      },
+    },
+  },
+  {
     "lervag/vimtex",
     keys = {
-      { "<C-S-b>", "<cmd>VimtexView<cr>", ft = "tex", desc = "LaTeX: view PDF" },
       { "<C-A-z>", "<cmd>VimtexTocToggle<cr>", ft = "tex", desc = "LaTeX: outline" },
     },
   },
@@ -47,6 +74,7 @@ return {
       suggestion = {
         keymap = {
           accept_word = "<M-'>",
+          next = "<M-i>",
         },
       },
     },
