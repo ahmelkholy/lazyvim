@@ -38,6 +38,9 @@ require("lazy").setup({
     enabled = true, -- check for plugin updates periodically
     notify = false, -- notify on update
   }, -- automatically check for plugin updates
+  -- No configured plugin needs LuaRocks. Disabling it avoids a broken
+  -- hererocks bootstrap and removes unnecessary startup/health noise.
+  rocks = { enabled = false },
   performance = {
     rtp = {
       -- disable some rtp plugins

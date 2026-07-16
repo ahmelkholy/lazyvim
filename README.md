@@ -50,7 +50,7 @@ It is checked out on the `linux` branch.
 
 Installed on this machine:
 
-- Neovim 0.12.2
+- Neovim 0.12.4
 - Git
 - ripgrep
 - fd
@@ -69,15 +69,17 @@ Installed on this machine:
 - VS Code Material Icon Theme installed and selected
 - VS Code Gruvbox theme extension installed
 - Gruvbox selected as the default Neovim and VS Code theme
-- tmux 3.6b and `/home/ahm_e/bin/vscode-tmux` for persistent VS Code terminals
+- tmux 3.7b and `/home/ahm_e/bin/vscode-tmux` for persistent VS Code terminals
+- `wl-clipboard` and `xclip` for local Linux clipboard integration; SSH/tmux
+  sessions use OSC 52
 
-Still recommended for full comfort:
+Optional language/tool support:
 
-- A Linux clipboard provider:
-  - Wayland: `wl-clipboard`
-  - X11: `xclip` or `xsel`
+- R and `Rscript` for R execution, R.nvim, and the R language server
+- MATLAB for the MATLAB run and command-window shortcuts
+- Biber for LaTeX projects that use a Biber bibliography backend
 
-On Arch Linux, install missing system packages with:
+On another Arch Linux machine, install the clipboard packages with:
 
 ```bash
 sudo pacman -S --needed wl-clipboard xclip
@@ -98,8 +100,9 @@ This command requires your sudo password.
 
 ## VS Code Muscle-Memory Bridge
 
-These shortcuts are added only when Neovim runs as a standalone editor. They do
-not replace an existing important Neovim/LazyVim control.
+These shortcuts are added in standalone Neovim. The VS Code settings also keep
+the same shortcuts owned by VS Code while VSCode-Neovim is active. VS Code
+muscle memory intentionally wins over conflicting native keys.
 
 | VS Code habit | Standalone Neovim action |
 | --- | --- |
@@ -109,60 +112,68 @@ not replace an existing important Neovim/LazyVim control.
 | `Ctrl+Shift+P` | Command Palette |
 | `Ctrl+Alt+Q` | Search in files |
 | `Ctrl+Q` | Close the active buffer |
+| `Ctrl+W`, `Shift+Alt+2` | Split the current editor to the right |
+| `Ctrl+Shift+B`, `Alt+B` | Open a new terminal; `Alt+B` previews Markdown in Markdown buffers |
+| `Ctrl+J`, `Alt+T`, `Ctrl+Alt+B` | Toggle the terminal panel |
 | `Ctrl+Tab`, `Ctrl+Shift+Tab` | Next/previous buffer |
 | `Ctrl+Shift+N` | Move the current editor to a new tab |
-| `Shift+Alt+2` | Split editor right |
 | `Ctrl+Alt+W`, `Ctrl+Alt+E` | Move the split to the far left/right |
-| `Alt+T`, `Ctrl+Alt+B` | Toggle the terminal |
-| `Alt+B` | New terminal; in Markdown, toggle preview instead |
+| `Ctrl+R` | Open recent files |
+| `Ctrl+K` | Save without formatting |
+| `Ctrl+/` | Toggle line/selection comments |
+| `Ctrl+L` | Start a new Copilot Chat |
+| `Ctrl+\\`, `Ctrl+Alt+T` | Toggle the current editor/panel zoom |
+| `F11` | Toggle fullscreen-style Zen mode |
+| `Ctrl+Alt+F` | Toggle the right-side symbol outline |
 | `Shift+Alt+F` | Format document or selection |
 | `F12`, `Shift+F12` | Definition/references |
 | `Ctrl+.` | Code actions |
 | `Alt+Left`, `Alt+Right` | Navigate backward/forward |
 | `Alt+D` | Reveal the current file in the system file manager |
 | `Ctrl+Alt+S` | Copy the current file path |
+| `Ctrl+Alt+P` | Open the plugin/package manager |
 | `Ctrl+Alt+G` | Open source control in Lazygit |
 | `Ctrl+Alt+V` | Pick a changed Git file |
 | `Alt+,`, `Alt+.`, `Alt+R` | Previous/next/preview Git change |
 | `Alt+A`, `Ctrl+Alt+A`, `Ctrl+Alt+C` | Toggle Copilot Chat |
 | `Ctrl+Shift+I`, `Shift+Alt+A` | AI quick chat/prompt actions |
 | `Alt+G`, `Ctrl+Alt+O`, `Ctrl+Alt+X` | Gemini/OpenCode/Claude terminal |
-| `Alt+'` | Accept the next Copilot word |
+| `Alt+'`, `Alt+I` | Accept a Copilot word/request the next suggestion |
+| `Ctrl+Shift+G` | Search Markdown wiki links as a graph-like index |
+| `Ctrl+Shift+Left`, then `Delete` | Open today's project note under `notes/daily/` |
 | `Ctrl+Shift+Alt+R` | Toggle right-to-left display |
 | `Shift+Alt+Q` | Confirm and close Neovim |
 
-Inside Neo-tree, the shared VS Code-like operations are `y` copy, `p` paste,
-`r` rename, `n` new file, and `N` new folder. Native Neo-tree safety is kept:
-`x` cuts and `d` deletes. Press `?` in the tree to see every native action.
+`Ctrl+B` is context-sensitive like VS Code: it previews Markdown, runs
+Python/Julia/R/MATLAB files, builds LaTeX, and opens HTML/CSV externally.
+Missing language executables produce a warning instead of a broken terminal.
 
-### Intentionally Kept Native
+Inside Neo-tree, the keys match the VS Code Explorer: `y` copies, `p` pastes,
+`d` cuts, `x` deletes, `r` renames, `n` creates a file, and `N` creates a
+folder. Hidden, dot, ignored, and platform-hidden files are visible. Fzf file
+search and grep also include hidden and ignored working files.
 
-The following VS Code shortcuts are not copied over because doing so would
-remove an important Neovim operation:
+Markdownlint uses `.markdownlint-cli2.jsonc`, where `MD013` is disabled so
+long prose, links, and tables do not produce line-length diagnostics.
 
-| Key | Native behavior kept | Familiar alternative |
-| --- | --- | --- |
-| `Ctrl+W` | Window/split command prefix | `Ctrl+Q` closes a buffer |
-| `Ctrl+R` | Redo | `<leader>fr` opens recent files |
-| `Ctrl+I` | Jump forward | `Alt+Right` also jumps forward |
-| `Ctrl+H/J/K/L` | Move across Neovim/tmux splits | `Alt+T` toggles the panel/terminal |
-| `Ctrl+F`, `Ctrl+B` | Page forward/backward | `/` searches; `<leader>r…` runs code |
-| `Ctrl+J` | Move to the lower split | `Alt+T` toggles the terminal |
-| `Ctrl+K` | Move to the upper split | `<leader>W` saves without formatting |
-| `Ctrl+\\` | Previous tmux pane | `Ctrl+W =` equalizes split widths |
-| `Ctrl+/` | LazyVim terminal | `gcc` comments a line; `gc` comments a selection |
-| `Ctrl+L` | Move to the right split | `<leader>aa` opens AI chat |
-| `Ctrl+A/C/X/V/Z` | Native number, mode, and job controls | Use `y`, `d`, `p`, `u`, and the `+` clipboard register |
+### Native Alternatives After VS Code Overrides
+
+| Native operation | Replacement |
+| --- | --- |
+| Redo | `<leader>ur` |
+| Split right/below | `<leader>wv`, `<leader>ws` |
+| Move left/down/up/right | `<leader>wh`, `<leader>wj`, `<leader>wk`, `<leader>wl` |
+| Close/equalize windows | `<leader>wc`, `<leader>w=` |
+| Comment using native motions | `gcc`, `gc` |
+| Run/build commands | `<leader>r…` |
 
 `Ctrl+D` remains the existing multi-cursor mapping from this repository. This
 was already an intentional override of Neovim's half-page scroll.
 
-VS Code-only surfaces stay in VS Code instead of gaining misleading Neovim
-bindings: the Activity/Auxiliary bars, fullscreen/window management, Remote
-Explorer, Google Tasks, Foam graph/daily notes, Data Wrangler, Office/CSV
-viewers, MATLAB UI, HTML Live Server, and extension-specific model pickers.
-Their original VS Code keybindings are unchanged. R and LaTeX received native
-Neovim support because this configuration has direct equivalents for them.
+Remote Explorer, Google Tasks, and Data Wrangler remain VS Code-only because
+there is no configured Neovim equivalent. HTML opens in the system browser
+without Live Server reload, and CSV opens in the system's associated viewer.
+MATLAB and R mappings become active when their command-line tools are installed.
 
 ## tmux
 
@@ -170,13 +181,14 @@ VS Code terminals use the `tmux` profile by default. The profile launches
 `/home/ahm_e/bin/vscode-tmux`, which attaches to a workspace-named session or
 creates one when needed.
 
-Inside standalone Neovim running under tmux:
+Inside standalone Neovim running under tmux, VS Code keys take priority. Use:
 
 - `<C-h>`: move left across Neovim splits or tmux panes
-- `<C-j>`: move down across Neovim splits or tmux panes
-- `<C-k>`: move up across Neovim splits or tmux panes
-- `<C-l>`: move right across Neovim splits or tmux panes
-- `<C-\>`: jump to the previous tmux pane
+- `<leader>wh/wj/wk/wl`: move between Neovim windows
+- tmux's prefix followed by an arrow: move between tmux panes
+
+The local tmux configuration enables CSI-u extended keys so tmux transmits
+`Ctrl+Shift+B` separately from `Ctrl+B`.
 
 ## First Run
 

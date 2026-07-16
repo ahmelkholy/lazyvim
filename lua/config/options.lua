@@ -5,6 +5,31 @@
 vim.g.lazyvim_python_lsp = "pyright"
 vim.g.lazyvim_python_ruff = "ruff"
 
+-- Mason-installed tools must also be available to health checks and plugins
+-- that execute before Mason itself is loaded.
+local mason_bin = vim.fn.stdpath("data") .. "/mason/bin"
+if (vim.uv or vim.loop).fs_stat(mason_bin) then
+  local separator = vim.fn.has("win32") == 1 and ";" or ":"
+  if not vim.env.PATH:find(mason_bin, 1, true) then
+    vim.env.PATH = mason_bin .. separator .. vim.env.PATH
+  end
+end
+
+local provider_python = vim.fn.stdpath("data")
+  .. (vim.fn.has("win32") == 1 and "/provider-python/Scripts/python.exe" or "/provider-python/bin/python")
+if vim.fn.executable(provider_python) == 1 then
+  vim.g.python3_host_prog = provider_python
+end
+
+-- These optional remote providers are not used by this configuration.
+vim.g.loaded_perl_provider = 0
+vim.g.loaded_ruby_provider = 0
+
+-- SSH/tmux sessions have no DISPLAY even though the terminal supports OSC52.
+if vim.env.SSH_TTY and not vim.env.DISPLAY and not vim.env.WAYLAND_DISPLAY then
+  vim.g.clipboard = "osc52"
+end
+
 -- Linux: use the account's login shell for external commands.
 if vim.fn.has("unix") == 1 then
   local shell = vim.env.SHELL
