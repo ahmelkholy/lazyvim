@@ -6,3 +6,5 @@ vim.api.nvim_create_user_command("NvimTransition", function()
   local guide = vim.fn.stdpath("config") .. "/NVIM_TRANSITION_GUIDE.md"
   vim.cmd.tabnew(vim.fn.fnameescape(guide))
 end, { desc = "Open the personalized VS Code to Neovim transition guide" })
+
+require("config.workspace").setup()

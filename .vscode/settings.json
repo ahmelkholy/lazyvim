@@ -1,4 +1,7 @@
 {
+  "editor.fontFamily": "'JetBrainsMono Nerd Font Mono', 'Cascadia Code NF', monospace",
+  "editor.fontLigatures": true,
+  "terminal.integrated.fontFamily": "'JetBrainsMono Nerd Font Mono', 'Cascadia Mono NF', monospace",
   "terminal.integrated.defaultProfile.linux": "tmux",
   "terminal.integrated.profiles.linux": {
     "tmux": {

@@ -21,6 +21,10 @@ available. The config lives in the normal Linux path:
 - Boots LazyVim from `~/.config/nvim/init.lua`.
 - Uses the Linux login shell from `$SHELL` instead of forcing PowerShell.
 - Keeps wrapping and linebreak enabled.
+- Opens Explorer plus two independent editor panes on a clean bare startup.
+- Gives every window its own filename/title bar and uses one global status line.
+- Uses JetBrainsMono Nerd Font Mono for graphical clients and the VS Code
+  workspace; terminal Neovim inherits the terminal application's font.
 - Maps `;` to `:` in normal mode.
 - Keeps `vim-visual-multi` for regular Neovim only.
 - Enables Treesitter for standalone Neovim.
@@ -159,6 +163,7 @@ available actions.
 | Split right/below | `Ctrl+W v`, `Ctrl+W s` |
 | Move left/down/up/right | `Ctrl+H/J/K/L` |
 | Close/equalize windows | `Ctrl+W c`, `Ctrl+W =` |
+| Restore Explorer + two editors | `<leader>wL` or `:WorkspaceLayout` |
 | Undo/redo | `u`, `Ctrl+R` |
 | Scroll half-page down/up | `Ctrl+D`, `Ctrl+U` |
 | Comment line/selection | `gcc`, `gc` |
@@ -168,6 +173,13 @@ available actions.
 | Run/build commands | `<leader>R…` |
 
 Run `:NvimTransition` inside Neovim for the personalized migration guide.
+
+The default three-pane workspace is deliberately limited to a clean `nvim`
+start. It does not rearrange explicit file/directory opens, diffs, stdin, or
+restored sessions. Bufferline is disabled because one shared buffer row makes
+split ownership unclear; the title directly above each window identifies the
+buffer that window owns. Real Neovim tab pages are still shown when there are
+two or more.
 
 Remote Explorer, Google Tasks, and Data Wrangler remain VS Code-only because
 there is no configured Neovim equivalent. HTML opens in the system browser

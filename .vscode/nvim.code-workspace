@@ -5,6 +5,9 @@
     }
   ],
   "settings": {
+    "editor.fontFamily": "'JetBrainsMono Nerd Font Mono', 'Cascadia Code NF', monospace",
+    "editor.fontLigatures": true,
+    "terminal.integrated.fontFamily": "'JetBrainsMono Nerd Font Mono', 'Cascadia Mono NF', monospace",
     "workbench.colorCustomizations": {
       "editorCursor.foreground": "#fabd2f",
       "activityBarBadge.background": "#fabd2f",
