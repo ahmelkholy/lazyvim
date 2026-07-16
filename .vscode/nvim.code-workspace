@@ -25,7 +25,24 @@
       }
     },
     "vscode-neovim.neovimExecutablePaths.linux": "/usr/bin/nvim",
-    "vscode-neovim.neovimInitVimPaths.linux": "/home/ahm_e/.config/nvim/init.lua",
+    "vscode-neovim.neovimExecutablePaths.win32": "C:\\Program Files\\Neovim\\bin\\nvim.exe",
+    "vscode-neovim.neovimInitVimPaths.linux": "/home/ahm_e/.config/nvim/init-vscode.lua",
+    "vscode-neovim.neovimInitVimPaths.win32": "C:\\Users\\ahm_e\\AppData\\Local\\nvim\\init-vscode.lua",
+    "vscode-neovim.ctrlKeysForNormalMode": [
+      "e",
+      "h",
+      "i",
+      "j",
+      "k",
+      "l",
+      "m",
+      "n",
+      "o",
+      "u",
+      "w",
+      "]"
+    ],
+    "vscode-neovim.ctrlKeysForInsertMode": [],
     "workbench.colorTheme": "Gruvbox Dark Medium",
     "workbench.iconTheme": "material-icon-theme"
   }
