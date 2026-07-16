@@ -9,15 +9,14 @@ return {
     "mg979/vim-visual-multi",
     branch = "master",
     event = "BufReadPost",
-    -- You can lazy-load on certain events if you'd like:
-    config = function()
-      -- Disable plugin’s default mappings if you want your own
+    init = function()
+      -- Keep Neovim's native Ctrl+D/Ctrl+N scrolling. Multi-cursor remains
+      -- available behind an explicit leader mapping.
       vim.g.VM_default_mappings = 0
-
-      -- Now set up your own keymaps for vim-visual-multi
-      vim.keymap.set("n", "<C-d>", "<Plug>(VM-Find-Under)", {})
-      vim.keymap.set("x", "<C-d>", "<Plug>(VM-Find-Subword-Under)", {})
-      -- or both "n"/"v" if you prefer
+      vim.g.VM_maps = {
+        ["Find Under"] = "<leader>mc",
+        ["Find Subword Under"] = "<leader>mc",
+      }
     end,
   },
 }
