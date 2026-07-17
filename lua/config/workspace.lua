@@ -231,6 +231,10 @@ function M.open_or_focus_explorer()
   local source_role = source_win and M.pane_role(source_win) or nil
   if source_role then
     vim.t.workspace_last_editor_role = source_role
+    -- Neo-tree may briefly enter another editor while creating/focusing its
+    -- split. Keep the pane that the user actually came from separately so
+    -- that those internal window events cannot change the routing target.
+    vim.t.workspace_explorer_source_role = source_role
   end
 
   local existing = tree_window()
@@ -255,7 +259,8 @@ function M.open_file_in_next_pane(path, state)
   end
 
   local editors = M.ensure_editor_panes()
-  local source_role = vim.t.workspace_last_editor_role
+  local source_role = vim.t.workspace_explorer_source_role or vim.t.workspace_last_editor_role
+  vim.t.workspace_explorer_source_role = nil
   local target_role = source_role == "L" and "R" or "L"
   local target = target_role == "R" and editors[2] or editors[1]
   if not target or not vim.api.nvim_win_is_valid(target) then
