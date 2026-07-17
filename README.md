@@ -110,14 +110,15 @@ own its familiar shortcuts while VSCode-Neovim is active.
 
 | VS Code habit | Standalone Neovim action |
 | --- | --- |
-| `Ctrl+Alt+D`, `Ctrl+Shift+E`, `Alt+F` | Toggle the project Explorer and reveal the current file |
+| `Ctrl+Alt+D` | Open or focus Explorer; never close it |
+| `Ctrl+Shift+E`, `Alt+F` | Toggle Explorer when you intentionally want to close it |
 | `F2` | Reveal the current file in the Explorer |
 | `Ctrl+Shift+P` | Command Palette |
 | `Ctrl+Alt+Q` | Search in files |
 | `Shift+Alt+2` | Split the current editor to the right |
 | `Ctrl+Shift+B`, `Alt+B` | Open a new terminal |
 | `Alt+T`, `Ctrl+Alt+B` | Toggle the terminal panel |
-| `Ctrl+Tab`, `Ctrl+Shift+Tab` | Next/previous buffer |
+| `Ctrl+Tab`, `Ctrl+Shift+Tab` | Next/previous tab in the current pane |
 | `Ctrl+Shift+N` | Move the current editor to a new tab |
 | `Ctrl+Alt+W`, `Ctrl+Alt+E` | Move the split to the far left/right |
 | `Ctrl+Alt+T` | Toggle the current editor/panel zoom |
@@ -146,6 +147,15 @@ Inside Neo-tree, the keys match the VS Code Explorer: `y` copies, `p` pastes,
 `d` cuts, `x` deletes, `r` renames, `n` creates a file, and `N` creates a
 folder. Hidden, dot, ignored, and platform-hidden files are visible. Fzf file
 search and grep also include hidden and ignored working files.
+
+Explorer file selections rotate between the two editor panes. Entering Explorer
+from the right opens the selected file on the left; entering from the left opens
+it on the right. The other pane's current file remains available in its local
+tab row. Direct repeated selections therefore alternate `L`, `R`, `L`, `R`.
+Directories still expand and collapse inside Explorer. Each editor pane shows
+up to four local tabs in its own title bar; opening a fifth removes that pane's
+oldest tab. A hidden, unmodified evicted buffer is closed automatically, while a
+modified or still-visible buffer is retained in Neovim to prevent data loss.
 
 Markdownlint uses `.markdownlint-cli2.jsonc`, where `MD013` is disabled so
 long prose, links, and tables do not produce line-length diagnostics.
@@ -177,9 +187,10 @@ Run `:NvimTransition` inside Neovim for the personalized migration guide.
 The default three-pane workspace is deliberately limited to a clean `nvim`
 start. It does not rearrange explicit file/directory opens, diffs, stdin, or
 restored sessions. Bufferline is disabled because one shared buffer row makes
-split ownership unclear; the title directly above each window identifies the
-buffer that window owns. Real Neovim tab pages are still shown when there are
-two or more.
+split ownership unclear; each window instead owns a local four-tab row directly
+above it. `▸` marks the selected pane tab, `+` marks unsaved changes, and the
+`L`/`R` badge identifies the editor group. Real Neovim tab pages are still shown
+when there are two or more.
 
 Remote Explorer, Google Tasks, and Data Wrangler remain VS Code-only because
 there is no configured Neovim equivalent. HTML opens in the system browser

@@ -54,9 +54,11 @@ These navigation keys also cross tmux panes, so the same movement works inside
 and outside Neovim splits.
 
 The title above each pane is the ownership marker that VS Code normally provides
-with editor-group tabs. `●` means that pane's buffer has unsaved changes, and
-`󰌾` means it is read-only. Actual Neovim tab pages appear at the very top only
-when more than one exists; the old shared buffer strip is intentionally absent.
+with editor-group tabs. Each editor pane holds up to four local tabs. `▸` marks
+the selected tab, `+` marks unsaved changes, and the badge says `L` or `R`.
+Opening a fifth file removes that pane's oldest tab. Modified or visible buffers
+are kept safely loaded even when they leave the four-tab row. Actual Neovim tab
+pages appear at the very top only when more than one exists.
 
 ## Files, Buffers, and Search
 
@@ -65,7 +67,9 @@ when more than one exists; the old shared buffer strip is intentionally absent.
 | Files | `<leader><space>` |
 | Recent files | `<leader>fr` |
 | Text search | `<leader>/` |
-| Explorer | `<leader>e` or `Ctrl+Alt+D` |
+| Open or focus Explorer | `Ctrl+Alt+D` |
+| Toggle/close Explorer | `<leader>e`, `Ctrl+Shift+E`, or `Alt+F` |
+| Next/previous tab in this pane | `Ctrl+Tab`, `Ctrl+Shift+Tab` |
 | Next/previous buffer | `Shift+L`, `Shift+H` |
 | Close current buffer | `<leader>bd` |
 | Search in current file | `/`, then type and press Enter |
@@ -75,6 +79,12 @@ when more than one exists; the old shared buffer strip is intentionally absent.
 Hidden, ignored, and dot files are visible in Neo-tree and included in file and
 grep pickers. Inside Neo-tree, `y` copies, `p` pastes, `d` cuts, `x` deletes,
 `r` renames, `n` creates a file, and `N` creates a directory.
+
+Pressing Enter or double-clicking a file in Explorer opens it in the opposite
+editor pane: right goes to left, then left goes to right. Repeated selections
+therefore rotate between `L` and `R`, while each pane retains its previous files
+in its own four-tab row. Selecting a directory expands or collapses it in
+Explorer instead of replacing an editor.
 
 ## Editing Essentials
 

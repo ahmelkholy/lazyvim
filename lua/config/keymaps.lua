@@ -15,6 +15,10 @@ local function toggle_explorer()
   vim.cmd("Neotree toggle reveal_force_cwd dir=" .. vim.fn.fnameescape(LazyVim.root()))
 end
 
+local function focus_explorer()
+  require("config.workspace").open_or_focus_explorer()
+end
+
 local function reveal_explorer()
   vim.cmd("Neotree reveal reveal_force_cwd dir=" .. vim.fn.fnameescape(LazyVim.root()))
 end
@@ -63,7 +67,7 @@ local function daily_note()
   vim.cmd.edit(vim.fn.fnameescape(directory .. "/" .. os.date("%Y-%m-%d") .. ".md"))
 end
 
-map("n", "<C-A-d>", toggle_explorer, { desc = "Explorer: toggle and reveal file" })
+map("n", "<C-A-d>", focus_explorer, { desc = "Explorer: open or focus" })
 map("n", "<C-S-e>", toggle_explorer, { desc = "Explorer: toggle and reveal file" })
 map("n", "<C-S-f>", toggle_explorer, { desc = "Toggle activity/sidebar" })
 map("n", "<A-f>", toggle_explorer, { desc = "Explorer: toggle and reveal file" })
@@ -72,8 +76,12 @@ map("n", "<F2>", reveal_explorer, { desc = "Explorer: reveal active file" })
 map("n", "<C-S-p>", "<cmd>FzfLua commands<cr>", { desc = "Command Palette" })
 map("n", "<C-A-q>", LazyVim.pick("live_grep"), { desc = "Search: find in files" })
 
-map("n", "<C-Tab>", "<cmd>bnext<cr>", { desc = "Next editor" })
-map("n", "<C-S-Tab>", "<cmd>bprevious<cr>", { desc = "Previous editor" })
+map("n", "<C-Tab>", function()
+  require("config.workspace").cycle_tabs(1)
+end, { desc = "Next tab in pane" })
+map("n", "<C-S-Tab>", function()
+  require("config.workspace").cycle_tabs(-1)
+end, { desc = "Previous tab in pane" })
 map("n", "<C-S-n>", "<cmd>tab split<cr>", { desc = "Move editor to new tab" })
 map("n", "<S-A-q>", "<cmd>confirm qall<cr>", { desc = "Close Neovim" })
 map({ "n", "t" }, "<A-t>", terminal, { desc = "Toggle terminal" })

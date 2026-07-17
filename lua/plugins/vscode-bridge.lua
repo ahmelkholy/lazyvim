@@ -7,6 +7,11 @@ return {
     "nvim-neo-tree/neo-tree.nvim",
     opts = {
       filesystem = {
+        commands = {
+          open = function(state)
+            require("config.workspace").open_from_tree(state)
+          end,
+        },
         follow_current_file = {
           enabled = true,
           leave_dirs_open = true,
