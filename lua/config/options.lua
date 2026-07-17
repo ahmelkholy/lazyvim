@@ -55,7 +55,7 @@ if vim.env.SSH_TTY and not vim.env.DISPLAY and not vim.env.WAYLAND_DISPLAY then
   vim.g.clipboard = "osc52"
 end
 
--- Linux: use the account's login shell for external commands.
+-- Linux/macOS: use the account's login shell for external commands.
 if vim.fn.has("unix") == 1 then
   local shell = vim.env.SHELL
   if shell and shell ~= "" and vim.fn.executable(shell) == 1 then

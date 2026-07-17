@@ -1,7 +1,7 @@
-# Linux Neovim LazyVim Config
+# Linux and macOS Neovim LazyVim Config
 
-This branch adapts the config for Linux while keeping the VSCode Neovim workflow
-available. The config lives in the normal Linux path:
+The `linux` branch supports Linux and macOS while keeping the VSCode Neovim
+workflow available. The config lives in the normal Unix path:
 
 ```text
 ~/.config/nvim
@@ -10,7 +10,8 @@ available. The config lives in the normal Linux path:
 ## Status
 
 - Branch: `linux`
-- Main target: Arch Linux standalone Neovim, VSCode Neovim, and daily development
+- Main target: Linux/macOS standalone Neovim, VSCode Neovim, and daily development
+- Branch policy: `main` is Windows; `linux` is Linux and macOS
 - Base: [LazyVim](https://www.lazyvim.org/)
 - Local Neovim path: `/usr/bin/nvim`
 - Default theme: Gruvbox
@@ -19,9 +20,10 @@ available. The config lives in the normal Linux path:
 ## What This Config Does
 
 - Boots LazyVim from `~/.config/nvim/init.lua`.
-- Uses the Linux login shell from `$SHELL` instead of forcing PowerShell.
+- Uses the Unix login shell from `$SHELL` instead of forcing PowerShell.
 - Keeps wrapping and linebreak enabled.
-- Opens Explorer plus two independent editor panes on a clean bare startup.
+- Opens Explorer on a clean bare startup, then creates up to two editor panes
+  only as real files are opened.
 - Gives every window its own filename/title bar and uses one global status line.
 - Uses JetBrainsMono Nerd Font Mono for graphical clients and the VS Code
   workspace; terminal Neovim inherits the terminal application's font.
@@ -32,7 +34,7 @@ available. The config lives in the normal Linux path:
   the VSCode Neovim extension.
 - Uses a lightweight `init-vscode.lua` backend in VS Code so the full standalone
   plugin stack cannot slow down or interfere with VS Code's UI.
-- Adds Linux VS Code settings for the Neovim executable and init file.
+- Adds Linux and macOS VS Code settings for the Neovim executable and init file.
 - Adds LazyVim extras for Python, Julia, C/C++, CMake, Docker, Git, SQL, YAML,
   TypeScript, DAP, projects, Aerial, Overseer, refactoring, tests, and Prettier.
 - Adds run shortcuts for Julia, Python, Make, C, and C++ files.
@@ -148,14 +150,14 @@ Inside Neo-tree, the keys match the VS Code Explorer: `y` copies, `p` pastes,
 folder. Hidden, dot, ignored, and platform-hidden files are visible. Fzf file
 search and grep also include hidden and ignored working files.
 
-Explorer file selections rotate between the two editor panes. Entering Explorer
-from the right opens the selected file on the left; entering from the left opens
-it on the right. The other pane's current file remains available in its local
-tab row. Direct repeated selections therefore alternate `L`, `R`, `L`, `R`.
-Directories still expand and collapse inside Explorer. Each editor pane shows
-up to four local tabs in its own title bar; opening a fifth removes that pane's
-oldest tab. A hidden, unmodified evicted buffer is closed automatically, while a
-modified or still-visible buffer is retained in Neovim to prevent data loss.
+Explorer starts without a blank editor. The first selected file creates pane
+`L`, and the second creates pane `R`. Later selections rotate between them: from
+the right to the left, then from the left to the right. If a pane has no file,
+it closes automatically. Modified unnamed content is retained to prevent data
+loss. Directories still expand and collapse inside Explorer. Each editor pane
+shows up to four local tabs in its own title bar; opening a fifth removes that
+pane's oldest tab. A hidden, unmodified evicted buffer is closed automatically,
+while a modified or still-visible buffer is retained in Neovim.
 
 Markdownlint uses `.markdownlint-cli2.jsonc`, where `MD013` is disabled so
 long prose, links, and tables do not produce line-length diagnostics.
@@ -173,7 +175,7 @@ available actions.
 | Split right/below | `Ctrl+W v`, `Ctrl+W s` |
 | Move left/down/up/right | `Ctrl+H/J/K/L` |
 | Close/equalize windows | `Ctrl+W c`, `Ctrl+W =` |
-| Restore Explorer + two editors | `<leader>wL` or `:WorkspaceLayout` |
+| Restore Explorer + file-backed panes | `<leader>wL` or `:WorkspaceLayout` |
 | Undo/redo | `u`, `Ctrl+R` |
 | Scroll half-page down/up | `Ctrl+D`, `Ctrl+U` |
 | Comment line/selection | `gcc`, `gc` |
@@ -184,13 +186,14 @@ available actions.
 
 Run `:NvimTransition` inside Neovim for the personalized migration guide.
 
-The default three-pane workspace is deliberately limited to a clean `nvim`
+The automatic Explorer workspace is deliberately limited to a clean `nvim`
 start. It does not rearrange explicit file/directory opens, diffs, stdin, or
-restored sessions. Bufferline is disabled because one shared buffer row makes
-split ownership unclear; each window instead owns a local four-tab row directly
-above it. `▸` marks the selected pane tab, `+` marks unsaved changes, and the
-`L`/`R` badge identifies the editor group. Real Neovim tab pages are still shown
-when there are two or more.
+restored sessions. It never keeps a blank editor: file selections grow the
+layout from Explorer-only to one and then two file panes. Bufferline is disabled
+because one shared buffer row makes split ownership unclear; each window instead
+owns a local four-tab row directly above it. `▸` marks the selected pane tab, `+`
+marks unsaved changes, and the `L`/`R` badge identifies the editor group. Real
+Neovim tab pages are still shown when there are two or more.
 
 Remote Explorer, Google Tasks, and Data Wrangler remain VS Code-only because
 there is no configured Neovim equivalent. HTML opens in the system browser
