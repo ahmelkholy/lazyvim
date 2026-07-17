@@ -10,6 +10,10 @@ end, { desc = "Open the personalized VS Code to Neovim transition guide" })
 require("config.workspace").setup()
 require("config.workspaces").setup()
 
+vim.api.nvim_create_user_command("ShortcutHealth", function()
+  require("config.shortcut_health").show()
+end, { desc = "Audit leader and custom shortcut availability" })
+
 -- Match Ctrl+C in graphical editors: every yank is also copied to the system
 -- clipboard without changing the normal behavior of delete/change registers.
 vim.api.nvim_create_autocmd("TextYankPost", {

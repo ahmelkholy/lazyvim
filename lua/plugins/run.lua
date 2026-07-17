@@ -3,7 +3,7 @@ if vim.g.vscode then
 end
 
 local function root()
-  return LazyVim.root()
+  return require("config.workspace").root() or vim.fn.getcwd()
 end
 
 local function executable(name)
@@ -16,13 +16,21 @@ local function executable(name)
 end
 
 local function current_file()
+  if vim.bo.buftype ~= "" then
+    vim.notify("The current buffer is not a filesystem file", vim.log.levels.WARN)
+    return nil
+  end
   local path = vim.api.nvim_buf_get_name(0)
-  if path == "" then
+  if path == "" or path:match("^%a[%w+.-]*://") then
     vim.notify("The current buffer has no file path", vim.log.levels.WARN)
     return nil
   end
-  vim.cmd.write()
-  return path
+  local ok, err = pcall(vim.cmd.write)
+  if not ok then
+    vim.notify(err, vim.log.levels.ERROR, { title = "Run file" })
+    return nil
+  end
+  return vim.fs.normalize(vim.fn.fnamemodify(path, ":p"))
 end
 
 local function python()
@@ -56,8 +64,11 @@ end
 
 local function compile_and_run(compiler)
   local compiler_path = executable(compiler)
+  if not compiler_path then
+    return
+  end
   local file = current_file()
-  if not compiler_path or not file then
+  if not file then
     return
   end
 
