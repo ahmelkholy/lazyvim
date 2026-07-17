@@ -27,7 +27,8 @@ shortcut, mapped command, plugin module, external tool, and clipboard provider.
 | `Ctrl+/` Comment | `gcc` or visual `gc` | LazyVim uses `Ctrl+/` for the terminal |
 | `Ctrl+D` Add cursor | `<leader>mc` | `Ctrl+D` scrolls half a page down |
 | `Ctrl+B` Run/build | `<leader>R…` | `Ctrl+B` scrolls a page backward |
-| `Ctrl+Shift+B` New terminal | `Ctrl+Shift+B` | Safe; this one is retained |
+| `Ctrl+Shift+B` New terminal | `Ctrl+Shift+B` | Adds a second terminal beside the first; maximum two |
+| `Ctrl+Alt+B` Terminal panel | `Ctrl+Alt+B` | Shows or hides the complete two-terminal group |
 | `Shift+Alt+F` Format | `Shift+Alt+F` or `<leader>cf` | Safe; this one is retained |
 | `Ctrl+.` Quick fix | `Ctrl+.` or `<leader>ca` | Safe; this one is retained |
 | `F12` Definition | `F12` or `gd` | Both are available |
