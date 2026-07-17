@@ -120,8 +120,8 @@ own its familiar shortcuts while VSCode-Neovim is active.
 | `Ctrl+Shift+P` | Command Palette |
 | `Ctrl+Alt+Q` | Search in files |
 | `Shift+Alt+2` | Split the current editor to the right |
-| `Ctrl+Shift+B`, `Alt+B` | Open a new terminal |
-| `Alt+T`, `Ctrl+Alt+B` | Toggle the terminal panel |
+| `Ctrl+Shift+B`, `Alt+B` | Add/focus a second terminal beside the first; maximum two |
+| `Alt+T`, `Ctrl+Alt+B` | Show or hide the complete terminal group |
 | `Ctrl+Tab`, `Ctrl+Shift+Tab` | Next/previous tab in the current pane |
 | `Ctrl+Shift+N` | Move the current editor to a new tab |
 | `Ctrl+Alt+W`, `Ctrl+Alt+E` | Move the split to the far left/right |
@@ -146,6 +146,9 @@ own its familiar shortcuts while VSCode-Neovim is active.
 | `Ctrl+Shift+Left`, then `Delete` | Open today's project note under `notes/daily/` |
 | `Ctrl+Shift+Alt+R` | Toggle right-to-left display |
 | `Shift+Alt+Q` | Confirm and close Neovim |
+
+The terminal group opens at twice the former panel height. Its two-terminal
+limit divides that same area side by side instead of stacking extra rows.
 
 Inside Neo-tree, the keys match the VS Code Explorer: `y` copies, `p` pastes,
 `d` cuts, `x` deletes, `r` renames, `n` creates a file, and `N` creates a

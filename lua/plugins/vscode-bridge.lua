@@ -32,7 +32,7 @@ return {
         },
       },
       window = {
-        width = 34,
+        width = require("config.workspace").explorer_width,
         mappings = {
           -- Match the user's VS Code Explorer bindings.
           ["y"] = "copy_to_clipboard",

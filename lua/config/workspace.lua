@@ -1,10 +1,12 @@
 local LazyVim = require("lazyvim.util")
 
 local M = {
+  explorer_width = 34,
   max_tabs = 4,
   _arranging = false,
   _cleanup_scheduled = false,
   _opening_explorer = false,
+  _resize_scheduled = false,
 }
 
 ---@type table<number, number[]>
@@ -126,6 +128,10 @@ local function active_editor_window()
   return editors[1]
 end
 
+function M.active_editor_window()
+  return active_editor_window()
+end
+
 local function tree_window()
   for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
     if is_regular_window(win) then
@@ -135,6 +141,52 @@ local function tree_window()
       end
     end
   end
+end
+
+function M.restore_explorer_width()
+  local tree = tree_window()
+  if not tree then
+    return false
+  end
+
+  local has_other_window = false
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+    if win ~= tree and is_regular_window(win) then
+      has_other_window = true
+      break
+    end
+  end
+  if not has_other_window then
+    return false
+  end
+
+  vim.api.nvim_set_option_value("winfixwidth", true, { win = tree })
+  local available = math.max(1, vim.o.columns - 20)
+  local ok = pcall(vim.api.nvim_win_set_width, tree, math.min(M.explorer_width, available))
+
+  local editors = editor_windows()
+  if #editors == 2 then
+    local left_position = vim.api.nvim_win_get_position(editors[1])
+    local right_position = vim.api.nvim_win_get_position(editors[2])
+    if left_position[2] ~= right_position[2] then
+      local total_width = vim.api.nvim_win_get_width(editors[1]) + vim.api.nvim_win_get_width(editors[2])
+      pcall(vim.api.nvim_win_set_width, editors[1], math.floor(total_width / 2))
+    end
+  end
+  return ok
+end
+
+function M.schedule_explorer_width()
+  if M._resize_scheduled or is_exiting() then
+    return
+  end
+  M._resize_scheduled = true
+  vim.schedule(function()
+    M._resize_scheduled = false
+    if not is_exiting() then
+      M.restore_explorer_width()
+    end
+  end)
 end
 
 local function valid_editor_buffer(buf)
@@ -255,6 +307,7 @@ local function open_tree(options)
   vim.defer_fn(function()
     M._opening_explorer = false
     M.schedule_empty_pane_cleanup()
+    M.schedule_explorer_width()
   end, 50)
   return true
 end
@@ -378,6 +431,7 @@ function M.open_or_focus_explorer()
   if existing then
     vim.api.nvim_set_current_win(existing)
     M.schedule_empty_pane_cleanup()
+    M.schedule_explorer_width()
     return
   end
 
@@ -396,8 +450,30 @@ function M.toggle_explorer()
     return
   end
 
-  open_tree({
-    action = "toggle",
+  local existing = tree_window()
+  if existing then
+    local regular_windows = vim.tbl_filter(is_regular_window, vim.api.nvim_tabpage_list_wins(0))
+    if #regular_windows == 1 then
+      vim.notify("Explorer is the only window; open a file before hiding it", vim.log.levels.WARN, {
+        title = "Explorer",
+      })
+      return false
+    end
+
+    local ok, err = pcall(require("neo-tree.command").execute, {
+      action = "close",
+      source = "filesystem",
+      position = "left",
+    })
+    if not ok then
+      vim.notify(err, vim.log.levels.ERROR, { title = "Explorer" })
+      return false
+    end
+    return true
+  end
+
+  return open_tree({
+    action = "focus",
     source = "filesystem",
     position = "left",
     dir = explorer_root(),
@@ -441,6 +517,7 @@ function M.open_file_in_next_pane(path, state)
         local events = require("neo-tree.events")
         events.fire_event(events.FILE_OPENED, path)
       end
+      M.schedule_explorer_width()
       return true
     end
   end
@@ -470,6 +547,7 @@ function M.open_file_in_next_pane(path, state)
   record_buffer(target, vim.api.nvim_win_get_buf(target))
   vim.t.workspace_last_editor_role = M.pane_role(target)
   M.schedule_empty_pane_cleanup()
+  M.schedule_explorer_width()
   if state then
     local events = require("neo-tree.events")
     events.fire_event(events.FILE_OPENED, path)
@@ -659,13 +737,21 @@ function M.setup()
   })
   vim.api.nvim_create_autocmd("WinNew", {
     group = history_group,
-    callback = M.schedule_empty_pane_cleanup,
+    callback = function()
+      M.schedule_empty_pane_cleanup()
+      M.schedule_explorer_width()
+    end,
   })
   vim.api.nvim_create_autocmd("WinClosed", {
     group = history_group,
     callback = function(event)
       histories[tonumber(event.match)] = nil
+      M.schedule_explorer_width()
     end,
+  })
+  vim.api.nvim_create_autocmd("VimResized", {
+    group = history_group,
+    callback = M.schedule_explorer_width,
   })
   vim.api.nvim_create_autocmd("WinEnter", {
     group = history_group,

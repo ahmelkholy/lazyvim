@@ -40,14 +40,11 @@ local function reveal_explorer()
 end
 
 local function terminal()
-  Snacks.terminal.focus(nil, { cwd = workspace_root() })
+  require("config.terminals").toggle()
 end
 
 local function new_terminal()
-  local ok, err = pcall(vim.cmd, "botright split | terminal")
-  if not ok then
-    vim.notify(err, vim.log.levels.ERROR, { title = "Terminal" })
-  end
+  require("config.terminals").split()
 end
 
 local function cli_terminal(command)
@@ -156,10 +153,10 @@ local function safe_write()
   end
 end
 
-map("n", "<C-A-d>", focus_explorer, { desc = "Explorer: open or focus" })
-map("n", "<C-S-e>", toggle_explorer, { desc = "Explorer: toggle and reveal file" })
-map("n", "<C-S-f>", toggle_explorer, { desc = "Toggle activity/sidebar" })
-map("n", "<A-f>", toggle_explorer, { desc = "Explorer: toggle and reveal file" })
+map({ "n", "t" }, "<C-A-d>", focus_explorer, { desc = "Explorer: open or focus" })
+map({ "n", "t" }, "<C-S-e>", toggle_explorer, { desc = "Explorer: show or hide" })
+map({ "n", "t" }, "<C-S-f>", toggle_explorer, { desc = "Toggle activity/sidebar" })
+map({ "n", "t" }, "<A-f>", toggle_explorer, { desc = "Explorer: show or hide" })
 map("n", "<F2>", reveal_explorer, { desc = "Explorer: reveal active file" })
 
 map("n", "<C-S-p>", "<cmd>FzfLua commands<cr>", { desc = "Command Palette" })
@@ -215,10 +212,10 @@ map("n", "<leader><tab>w", function()
 end, { desc = "Workspaces" })
 map("n", "<C-S-n>", "<cmd>tab split<cr>", { desc = "Move editor to new tab" })
 map("n", "<S-A-q>", "<cmd>confirm qall<cr>", { desc = "Close Neovim" })
-map({ "n", "t" }, "<A-t>", terminal, { desc = "Toggle terminal" })
-map({ "n", "t" }, "<C-A-b>", terminal, { desc = "Toggle terminal panel" })
-map("n", "<A-b>", new_terminal, { desc = "New terminal" })
-map({ "n", "t" }, "<C-S-b>", new_terminal, { desc = "New terminal" })
+map({ "n", "t" }, "<A-t>", terminal, { desc = "Terminal group: show or hide" })
+map({ "n", "t" }, "<C-A-b>", terminal, { desc = "Terminal group: show or hide" })
+map("n", "<A-b>", new_terminal, { desc = "Terminal: second pane (max 2)" })
+map({ "n", "t" }, "<C-S-b>", new_terminal, { desc = "Terminal: second pane (max 2)" })
 
 local function send_terminal_continuation()
   local channel = vim.b.terminal_job_id

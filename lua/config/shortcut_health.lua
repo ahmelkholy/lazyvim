@@ -90,6 +90,10 @@ local required_maps = {
     "<leader>mc",
   },
   t = {
+    "<C-A-d>",
+    "<C-S-e>",
+    "<C-S-f>",
+    "<A-f>",
     "<A-t>",
     "<C-A-b>",
     "<C-S-b>",
@@ -105,6 +109,7 @@ local required_modules = {
   "aerial",
   "config.workspace",
   "config.workspaces",
+  "config.terminals",
   "dap",
   "fzf-lua",
   "gitsigns",
