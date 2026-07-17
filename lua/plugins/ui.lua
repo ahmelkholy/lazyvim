@@ -1,4 +1,5 @@
 local LazyVim = require("lazyvim.util")
+local Workspace = require("config.workspace")
 
 local function statusline_window()
   local win = tonumber(vim.g.statusline_winid)
@@ -9,7 +10,8 @@ local function statusline_window()
 end
 
 local function pane_number()
-  return string.format("󰓩 %d", vim.fn.win_id2win(statusline_window()))
+  local win = statusline_window()
+  return string.format("󰓩 %s", Workspace.pane_role(win) or vim.fn.win_id2win(win))
 end
 
 local special_titles = {
@@ -68,11 +70,43 @@ local function pane_title()
   return title
 end
 
+local function compact_name(buf)
+  local name = vim.api.nvim_buf_get_name(buf)
+  if name == "" then
+    return "Untitled"
+  end
+
+  local basename = vim.fn.fnamemodify(name, ":t")
+  if vim.fn.strdisplaywidth(basename) > 16 then
+    basename = vim.fn.strcharpart(basename, 0, 13) .. "…"
+  end
+  return basename
+end
+
+local function pane_tabs()
+  local win = statusline_window()
+  local current = vim.api.nvim_win_get_buf(win)
+  local tabs = Workspace.tabs(win)
+  if #tabs < 2 then
+    return pane_title()
+  end
+
+  local labels = {}
+  for _, buf in ipairs(tabs) do
+    local filetype = vim.api.nvim_get_option_value("filetype", { buf = buf })
+    local name = vim.api.nvim_buf_get_name(buf)
+    local marker = buf == current and "▸" or "·"
+    local modified = vim.api.nvim_get_option_value("modified", { buf = buf }) and "+" or ""
+    labels[#labels + 1] = string.format("%s %s %s%s", marker, file_icon(name, filetype), compact_name(buf), modified)
+  end
+  return table.concat(labels, "  ")
+end
+
 local function winbar(active)
   return {
-    lualine_a = active and { { pane_number, separator = { right = "" } } } or {},
+    lualine_a = { { pane_number, separator = { right = "" } } },
     lualine_b = {},
-    lualine_c = { { pane_title, color = active and { gui = "bold" } or nil } },
+    lualine_c = { { pane_tabs, color = active and { gui = "bold" } or nil } },
     lualine_x = {},
     lualine_y = {},
     lualine_z = {},
