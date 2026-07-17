@@ -35,6 +35,8 @@ workflow available. The config lives in the normal Unix path:
 - Uses a lightweight `init-vscode.lua` backend in VS Code so the full standalone
   plugin stack cannot slow down or interfere with VS Code's UI.
 - Adds Linux and macOS VS Code settings for the Neovim executable and init file.
+- Shows opened workspaces in the top tab row and automatically remembers Git
+  roots.
 - Adds LazyVim extras for Python, Julia, C/C++, CMake, Docker, Git, SQL, YAML,
   TypeScript, DAP, projects, Aerial, Overseer, refactoring, tests, and Prettier.
 - Adds run shortcuts for Julia, Python, Make, C, and C++ files.
@@ -171,6 +173,7 @@ available actions.
 | --- | --- |
 | Quick Open | `<leader><space>` |
 | Recent files | `<leader>fr` |
+| Workspaces | `<leader>fw` or `:Workspaces` |
 | Close buffer | `<leader>bd` |
 | Split right/below | `Ctrl+W v`, `Ctrl+W s` |
 | Move left/down/up/right | `Ctrl+H/J/K/L` |
@@ -192,8 +195,9 @@ restored sessions. It never keeps a blank editor: file selections grow the
 layout from Explorer-only to one and then two file panes. Bufferline is disabled
 because one shared buffer row makes split ownership unclear; each window instead
 owns a local four-tab row directly above it. `▸` marks the selected pane tab, `+`
-marks unsaved changes, and the `L`/`R` badge identifies the editor group. Real
-Neovim tab pages are still shown when there are two or more.
+marks unsaved changes, and the `L`/`R` badge identifies the editor group. The
+top tab row shows opened workspaces; Git roots are added automatically, while
+`:WorkspaceAdd` saves a non-Git directory manually.
 
 Remote Explorer, Google Tasks, and Data Wrangler remain VS Code-only because
 there is no configured Neovim equivalent. HTML opens in the system browser
@@ -258,6 +262,9 @@ nvim --headless "+Lazy! sync" +qa
 ```
 
 ## Troubleshooting
+
+Yanking with `y`, `yy`, or visual `y` mirrors the copied text to the system
+clipboard. Deletes and changes do not replace that clipboard content.
 
 If clipboard integration does not work, install `wl-clipboard` on Wayland or
 `xclip` on X11, then restart Neovim.
