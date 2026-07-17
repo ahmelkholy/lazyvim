@@ -8,3 +8,4 @@ vim.api.nvim_create_user_command("NvimTransition", function()
 end, { desc = "Open the personalized VS Code to Neovim transition guide" })
 
 require("config.workspace").setup()
+require("config.workspaces").setup()

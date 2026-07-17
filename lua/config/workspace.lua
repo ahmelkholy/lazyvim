@@ -4,6 +4,7 @@ local M = {
   max_tabs = 4,
   _arranging = false,
   _cleanup_scheduled = false,
+  _opening_explorer = false,
 }
 
 ---@type table<number, number[]>
@@ -18,6 +19,10 @@ local starter_filetypes = {
 
 local function is_regular_window(win)
   return vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_config(win).relative == ""
+end
+
+local function is_exiting()
+  return vim.v.exiting ~= vim.NIL
 end
 
 local function is_empty_editor_buffer(buf)
@@ -175,6 +180,26 @@ local function arrange(callback)
   return result
 end
 
+local function open_tree(options)
+  if M._opening_explorer then
+    return true
+  end
+
+  M._opening_explorer = true
+  local ok, err = pcall(require("neo-tree.command").execute, options)
+  if not ok then
+    M._opening_explorer = false
+    vim.notify(err, vim.log.levels.ERROR, { title = "Explorer" })
+    return false
+  end
+
+  vim.defer_fn(function()
+    M._opening_explorer = false
+    M.schedule_empty_pane_cleanup()
+  end, 50)
+  return true
+end
+
 function M.should_open_automatically()
   if vim.g.vscode or #vim.api.nvim_list_uis() == 0 then
     return false
@@ -214,7 +239,7 @@ function M.pane_role(win)
 end
 
 function M.close_empty_panes()
-  if vim.g.vscode or M._arranging then
+  if vim.g.vscode or M._arranging or is_exiting() then
     return
   end
 
@@ -250,23 +275,25 @@ function M.close_empty_panes()
   end)
 
   if needs_explorer then
-    require("neo-tree.command").execute({
+    open_tree({
       action = "focus",
       source = "filesystem",
       position = "left",
       dir = LazyVim.root(),
     })
-    M.schedule_empty_pane_cleanup()
   end
 end
 
 function M.schedule_empty_pane_cleanup()
-  if vim.g.vscode or M._cleanup_scheduled then
+  if vim.g.vscode or M._cleanup_scheduled or is_exiting() then
     return
   end
   M._cleanup_scheduled = true
   vim.schedule(function()
     M._cleanup_scheduled = false
+    if is_exiting() then
+      return
+    end
     M.close_empty_panes()
   end)
 end
@@ -295,7 +322,7 @@ function M.open_or_focus_explorer()
     return
   end
 
-  require("neo-tree.command").execute({
+  open_tree({
     action = "focus",
     source = "filesystem",
     position = "left",
@@ -303,7 +330,6 @@ function M.open_or_focus_explorer()
     reveal_file = path ~= "" and path or nil,
     reveal_force_cwd = true,
   })
-  M.schedule_empty_pane_cleanup()
 end
 
 function M.open_file_in_next_pane(path, state)
@@ -418,13 +444,12 @@ function M.open()
   end
 
   local root = LazyVim.root()
-  require("neo-tree.command").execute({
+  open_tree({
     action = "focus",
     source = "filesystem",
     position = "left",
     dir = root,
   })
-  M.schedule_empty_pane_cleanup()
 end
 
 function M.setup()
