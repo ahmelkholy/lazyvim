@@ -174,6 +174,7 @@ available actions.
 | Quick Open | `<leader><space>` |
 | Recent files | `<leader>fr` |
 | Workspaces | `<leader>fw` or `:Workspaces` |
+| Pane tabs | `<leader><Tab>` then `Tab`, `[`, `]`, `1`–`4`, `f`, `l`, `d`, or `o` |
 | Close buffer | `<leader>bd` |
 | Split right/below | `Ctrl+W v`, `Ctrl+W s` |
 | Move left/down/up/right | `Ctrl+H/J/K/L` |

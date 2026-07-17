@@ -92,12 +92,13 @@ local function pane_tabs()
   end
 
   local labels = {}
-  for _, buf in ipairs(tabs) do
+  for index, buf in ipairs(tabs) do
     local filetype = vim.api.nvim_get_option_value("filetype", { buf = buf })
     local name = vim.api.nvim_buf_get_name(buf)
     local marker = buf == current and "▸" or "·"
     local modified = vim.api.nvim_get_option_value("modified", { buf = buf }) and "+" or ""
-    labels[#labels + 1] = string.format("%s %s %s%s", marker, file_icon(name, filetype), compact_name(buf), modified)
+    labels[#labels + 1] =
+      string.format("%s%d %s %s%s", marker, index, file_icon(name, filetype), compact_name(buf), modified)
   end
   return table.concat(labels, "  ")
 end

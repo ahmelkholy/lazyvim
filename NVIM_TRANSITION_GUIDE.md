@@ -83,6 +83,7 @@ and `gT` move to the next and previous opened workspace.
 | Open or focus Explorer | `Ctrl+Alt+D` |
 | Toggle/close Explorer | `<leader>e`, `Ctrl+Shift+E`, or `Alt+F` |
 | Next/previous tab in this pane | `Ctrl+Tab`, `Ctrl+Shift+Tab` |
+| Pane-tab menu | `<leader><Tab>` then `Tab`, `[`, `]`, `1`–`4`, `f`, `l`, `d`, or `o` |
 | Next/previous buffer | `Shift+L`, `Shift+H` |
 | Close current buffer | `<leader>bd` |
 | Search in current file | `/`, then type and press Enter |

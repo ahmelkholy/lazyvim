@@ -109,6 +109,19 @@ local function editor_windows()
   return windows
 end
 
+local function active_editor_window()
+  local current = vim.api.nvim_get_current_win()
+  if is_file_window(current) then
+    return current
+  end
+
+  local editors = editor_windows()
+  if vim.t.workspace_last_editor_role == "R" and editors[2] then
+    return editors[2]
+  end
+  return editors[1]
+end
+
 local function tree_window()
   for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
     if is_regular_window(win) then
@@ -454,11 +467,12 @@ function M.open_from_tree(state)
 end
 
 function M.cycle_tabs(direction)
-  local win = vim.api.nvim_get_current_win()
-  if not is_editor_window(win) then
+  local win = active_editor_window()
+  if not win then
     return
   end
 
+  vim.api.nvim_set_current_win(win)
   local current = vim.api.nvim_win_get_buf(win)
   record_buffer(win, current)
   local tabs = M.tabs(win)
@@ -478,6 +492,101 @@ function M.cycle_tabs(direction)
   if not ok then
     vim.notify(err, vim.log.levels.ERROR, { title = "Pane tabs" })
   end
+end
+
+function M.select_tab(index)
+  local win = active_editor_window()
+  if not win then
+    return false
+  end
+
+  local tabs = M.tabs(win)
+  index = index < 0 and #tabs + index + 1 or index
+  local target = tabs[index]
+  if not target then
+    return false
+  end
+
+  vim.api.nvim_set_current_win(win)
+  local ok, err = pcall(vim.api.nvim_win_set_buf, win, target)
+  if not ok then
+    vim.notify(err, vim.log.levels.ERROR, { title = "Pane tabs" })
+    return false
+  end
+  vim.t.workspace_last_editor_role = M.pane_role(win)
+  return true
+end
+
+function M.close_current_tab()
+  local win = active_editor_window()
+  if not win then
+    return false
+  end
+
+  vim.api.nvim_set_current_win(win)
+  local current = vim.api.nvim_win_get_buf(win)
+  record_buffer(win, current)
+  local tabs = M.tabs(win)
+
+  if vim.api.nvim_get_option_value("modified", { buf = current }) then
+    local name = vim.api.nvim_buf_get_name(current)
+    name = name ~= "" and vim.fn.fnamemodify(name, ":t") or "Untitled"
+    local ok, choice = pcall(vim.fn.confirm, ('Save changes to "%s"?'):format(name), "&Yes\n&No\n&Cancel")
+    if not ok or choice == 0 or choice == 3 then
+      return false
+    end
+    if choice == 1 then
+      local wrote, write_err = pcall(vim.api.nvim_buf_call, current, vim.cmd.write)
+      if not wrote then
+        vim.notify(write_err, vim.log.levels.ERROR, { title = "Close pane tab" })
+        return false
+      end
+    end
+  end
+
+  if #tabs > 1 then
+    local current_index = vim.fn.index(tabs, current) + 1
+    local target_index = current_index < #tabs and current_index + 1 or current_index - 1
+    vim.api.nvim_win_set_buf(win, tabs[target_index])
+  end
+
+  local ok, err = pcall(vim.api.nvim_buf_delete, current, { force = true })
+  if not ok then
+    vim.notify(err, vim.log.levels.ERROR, { title = "Close pane tab" })
+    return false
+  end
+  M.schedule_empty_pane_cleanup()
+  return true
+end
+
+function M.close_other_tabs()
+  local win = active_editor_window()
+  if not win then
+    return false
+  end
+
+  vim.api.nvim_set_current_win(win)
+  local current = vim.api.nvim_win_get_buf(win)
+  record_buffer(win, current)
+  local kept = { current }
+  local skipped = 0
+
+  for _, buf in ipairs(M.tabs(win)) do
+    if buf ~= current then
+      local modified = vim.api.nvim_get_option_value("modified", { buf = buf })
+      local shared = buffer_is_visible(buf) or buffer_belongs_to_another_pane(buf, win)
+      if modified or shared or not pcall(vim.api.nvim_buf_delete, buf, { force = false }) then
+        kept[#kept + 1] = buf
+        skipped = skipped + 1
+      end
+    end
+  end
+  histories[win] = kept
+
+  if skipped > 0 then
+    vim.notify(("Kept %d modified or shared pane tab(s)"):format(skipped), vim.log.levels.WARN)
+  end
+  return true
 end
 
 function M.open()
