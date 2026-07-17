@@ -2,19 +2,7 @@
   "editor.fontFamily": "'JetBrainsMono Nerd Font Mono', 'Cascadia Code NF', monospace",
   "editor.fontLigatures": true,
   "terminal.integrated.fontFamily": "'JetBrainsMono Nerd Font Mono', 'Cascadia Mono NF', monospace",
-  "terminal.integrated.defaultProfile.linux": "tmux",
-  "terminal.integrated.profiles.linux": {
-    "tmux": {
-      "path": "/home/ahm_e/bin/vscode-tmux",
-      "args": ["${workspaceFolder}"]
-    },
-    "zsh": {
-      "path": "/usr/bin/zsh"
-    }
-  },
-  "vscode-neovim.neovimExecutablePaths.linux": "/usr/bin/nvim",
   "vscode-neovim.neovimExecutablePaths.win32": "C:\\Program Files\\Neovim\\bin\\nvim.exe",
-  "vscode-neovim.neovimInitVimPaths.linux": "/home/ahm_e/.config/nvim/init-vscode.lua",
   "vscode-neovim.neovimInitVimPaths.win32": "C:\\Users\\ahm_e\\AppData\\Local\\nvim\\init-vscode.lua",
   "vscode-neovim.ctrlKeysForNormalMode": [
     "e",

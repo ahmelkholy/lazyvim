@@ -1,27 +1,30 @@
-# Linux Neovim LazyVim Config
+# Windows Neovim LazyVim Config
 
-This branch adapts the config for Linux while keeping the VSCode Neovim workflow
-available. The config lives in the normal Linux path:
+The `main` branch targets Windows while keeping the same standalone and
+VSCode-Neovim workflow as the Unix branch. Install it in the normal Windows
+configuration path:
 
 ```text
-~/.config/nvim
+%LOCALAPPDATA%\nvim
 ```
 
 ## Status
 
-- Branch: `linux`
-- Main target: Arch Linux standalone Neovim, VSCode Neovim, and daily development
+- Branch: `main`
+- Main target: Windows standalone Neovim, VSCode Neovim, and daily development
+- Branch policy: `main` is Windows; `linux` is Linux and macOS
 - Base: [LazyVim](https://www.lazyvim.org/)
-- Local Neovim path: `/usr/bin/nvim`
-- Default theme: Gruvbox
+- Local Neovim path: `C:\Program Files\Neovim\bin\nvim.exe`
+- Default theme: Monokai
 - Default icon theme in VS Code: Material Icon Theme
 
 ## What This Config Does
 
-- Boots LazyVim from `~/.config/nvim/init.lua`.
-- Uses the Linux login shell from `$SHELL` instead of forcing PowerShell.
+- Boots LazyVim from `%LOCALAPPDATA%\nvim\init.lua`.
+- Uses PowerShell when `pwsh` is available.
 - Keeps wrapping and linebreak enabled.
-- Opens Explorer plus two independent editor panes on a clean bare startup.
+- Opens Explorer on a clean bare startup, then creates up to two editor panes
+  only as real files are opened.
 - Gives every window its own filename/title bar and uses one global status line.
 - Uses JetBrainsMono Nerd Font Mono for graphical clients and the VS Code
   workspace; terminal Neovim inherits the terminal application's font.
@@ -32,64 +35,47 @@ available. The config lives in the normal Linux path:
   the VSCode Neovim extension.
 - Uses a lightweight `init-vscode.lua` backend in VS Code so the full standalone
   plugin stack cannot slow down or interfere with VS Code's UI.
-- Adds Linux VS Code settings for the Neovim executable and init file.
+- Adds Windows VS Code settings for the Neovim executable and init file.
 - Adds LazyVim extras for Python, Julia, C/C++, CMake, Docker, Git, SQL, YAML,
   TypeScript, DAP, projects, Aerial, Overseer, refactoring, tests, and Prettier.
 - Adds run shortcuts for Julia, Python, Make, C, and C++ files.
 - Adds R and LaTeX support and a conservative VS Code muscle-memory layer.
-- Uses a Neovim-local npm cache for Mason so Node-based language tools do not
-  depend on a damaged or root-owned `~/.npm` cache.
 
 ## Installed Location
 
-This machine is already set up with this repo cloned to:
+Clone or link this repository to:
 
 ```text
-/home/ahm_e/.config/nvim
+%LOCALAPPDATA%\nvim
 ```
 
-It is checked out on the `linux` branch.
+Keep it checked out on the `main` branch.
 
 ## Requirements
 
-Installed on this machine:
+Recommended tools:
 
-- Neovim 0.12.4
+- Neovim 0.12 or newer
 - Git
 - ripgrep
 - fd
 - fzf
 - lazygit
 - Node.js and npm
-- unzip
-- GCC, G++, and make
-- Julia 1.12.6 through juliaup
-- Julia LanguageServer, SymbolServer, StaticLint, and JuliaFormatter in
-  `~/.julia/environments/nvim-lspconfig`
+- a C/C++ compiler and `make`
+- Julia through juliaup when Julia support is needed
 - Mason language tools for Python, C/C++, CMake, shell, Lua, JSON, YAML,
   TypeScript, Docker, Markdown, TOML, SQL, formatting, and debugging
-- JetBrainsMono Nerd Font installed under `~/.local/share/fonts`
-- VSCode Neovim extension installed in the SSH VS Code server
+- JetBrainsMono Nerd Font or another Nerd Font
+- VSCode Neovim extension
 - VS Code Material Icon Theme installed and selected
-- VS Code Gruvbox theme extension installed
-- Gruvbox selected as the default Neovim and VS Code theme
-- tmux 3.7b and `/home/ahm_e/bin/vscode-tmux` for persistent VS Code terminals
-- `wl-clipboard` and `xclip` for local Linux clipboard integration; SSH/tmux
-  sessions use OSC 52
+- Monokai selected as the default Neovim and VS Code theme
 
 Optional language/tool support:
 
 - R and `Rscript` for R execution, R.nvim, and the R language server
 - MATLAB for the MATLAB run and command-window shortcuts
 - Biber for LaTeX projects that use a Biber bibliography backend
-
-On another Arch Linux machine, install the clipboard packages with:
-
-```bash
-sudo pacman -S --needed wl-clipboard xclip
-```
-
-This command requires your sudo password.
 
 ## Development Shortcuts
 
@@ -148,14 +134,14 @@ Inside Neo-tree, the keys match the VS Code Explorer: `y` copies, `p` pastes,
 folder. Hidden, dot, ignored, and platform-hidden files are visible. Fzf file
 search and grep also include hidden and ignored working files.
 
-Explorer file selections rotate between the two editor panes. Entering Explorer
-from the right opens the selected file on the left; entering from the left opens
-it on the right. The other pane's current file remains available in its local
-tab row. Direct repeated selections therefore alternate `L`, `R`, `L`, `R`.
-Directories still expand and collapse inside Explorer. Each editor pane shows
-up to four local tabs in its own title bar; opening a fifth removes that pane's
-oldest tab. A hidden, unmodified evicted buffer is closed automatically, while a
-modified or still-visible buffer is retained in Neovim to prevent data loss.
+Explorer starts without a blank editor. The first selected file creates pane
+`L`, and the second creates pane `R`. Later selections rotate between them: from
+the right to the left, then from the left to the right. If a pane has no file,
+it closes automatically. Modified unnamed content is retained to prevent data
+loss. Directories still expand and collapse inside Explorer. Each editor pane
+shows up to four local tabs in its own title bar; opening a fifth removes that
+pane's oldest tab. A hidden, unmodified evicted buffer is closed automatically,
+while a modified or still-visible buffer is retained in Neovim.
 
 Markdownlint uses `.markdownlint-cli2.jsonc`, where `MD013` is disabled so
 long prose, links, and tables do not produce line-length diagnostics.
@@ -173,7 +159,7 @@ available actions.
 | Split right/below | `Ctrl+W v`, `Ctrl+W s` |
 | Move left/down/up/right | `Ctrl+H/J/K/L` |
 | Close/equalize windows | `Ctrl+W c`, `Ctrl+W =` |
-| Restore Explorer + two editors | `<leader>wL` or `:WorkspaceLayout` |
+| Restore Explorer + file-backed panes | `<leader>wL` or `:WorkspaceLayout` |
 | Undo/redo | `u`, `Ctrl+R` |
 | Scroll half-page down/up | `Ctrl+D`, `Ctrl+U` |
 | Comment line/selection | `gcc`, `gc` |
@@ -184,39 +170,25 @@ available actions.
 
 Run `:NvimTransition` inside Neovim for the personalized migration guide.
 
-The default three-pane workspace is deliberately limited to a clean `nvim`
+The automatic Explorer workspace is deliberately limited to a clean `nvim`
 start. It does not rearrange explicit file/directory opens, diffs, stdin, or
-restored sessions. Bufferline is disabled because one shared buffer row makes
-split ownership unclear; each window instead owns a local four-tab row directly
-above it. `▸` marks the selected pane tab, `+` marks unsaved changes, and the
-`L`/`R` badge identifies the editor group. Real Neovim tab pages are still shown
-when there are two or more.
+restored sessions. It never keeps a blank editor: file selections grow the
+layout from Explorer-only to one and then two file panes. Bufferline is disabled
+because one shared buffer row makes split ownership unclear; each window instead
+owns a local four-tab row directly above it. `▸` marks the selected pane tab, `+`
+marks unsaved changes, and the `L`/`R` badge identifies the editor group. Real
+Neovim tab pages are still shown when there are two or more.
 
 Remote Explorer, Google Tasks, and Data Wrangler remain VS Code-only because
 there is no configured Neovim equivalent. HTML opens in the system browser
 without Live Server reload, and CSV opens in the system's associated viewer.
 MATLAB and R mappings become active when their command-line tools are installed.
 
-## tmux
-
-VS Code terminals use the `tmux` profile by default. The profile launches
-`/home/ahm_e/bin/vscode-tmux`, which attaches to a workspace-named session or
-creates one when needed.
-
-Inside standalone Neovim running under tmux, use the standard navigation keys:
-
-- `<C-h/j/k/l>`: move left/down/up/right across Neovim splits or tmux panes
-- `<C-\\>`: return to the previous pane
-- tmux's prefix followed by an arrow: move between tmux panes
-
-The local tmux configuration enables CSI-u extended keys so tmux transmits
-`Ctrl+Shift+B` separately from `Ctrl+B`.
-
 ## First Run
 
 Start Neovim and let Lazy install plugins:
 
-```bash
+```powershell
 nvim
 ```
 
@@ -239,8 +211,8 @@ code --install-extension asvetliakov.vscode-neovim
 The workspace and user settings point VS Code at the lightweight backend:
 
 ```text
-/usr/bin/nvim
-/home/ahm_e/.config/nvim/init-vscode.lua
+C:\Program Files\Neovim\bin\nvim.exe
+C:\Users\ahm_e\AppData\Local\nvim\init-vscode.lua
 ```
 
 If `code` is not available, install the extension from the VS Code Extensions
@@ -248,34 +220,24 @@ view and reload the window.
 
 ## Updating
 
-```bash
-cd ~/.config/nvim
+```powershell
+Set-Location $env:LOCALAPPDATA\nvim
 git pull
 nvim --headless "+Lazy! sync" +qa
 ```
 
 ## Troubleshooting
 
-If clipboard integration does not work, install `wl-clipboard` on Wayland or
-`xclip` on X11, then restart Neovim.
-
 If icons render as boxes, install a Nerd Font and configure your terminal or VS
 Code to use it.
 
 If VS Code cannot find Neovim, confirm the path:
 
-```bash
-command -v nvim
+```powershell
+where.exe nvim
 ```
 
-Then update `vscode-neovim.neovimExecutablePaths.linux` in VS Code settings.
-
-If `:Lazy sync` or Mason registry refresh hangs while proxy variables are set,
-run it once without the stale proxy environment:
-
-```bash
-env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy -u proxy_url nvim --headless "+Lazy! sync" +qa
-```
+Then update `vscode-neovim.neovimExecutablePaths.win32` in VS Code settings.
 
 ## License
 
