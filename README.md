@@ -133,6 +133,9 @@ own its familiar shortcuts while VSCode-Neovim is active.
 
 The terminal group opens at twice the former panel height. Its two-terminal
 limit divides that same area side by side instead of stacking extra rows.
+`Alt+B` also works while typing in a terminal: it creates and selects the
+second terminal, then cycles between both terminals. It is the reliable
+fallback when a terminal emulator sends `Ctrl+Shift+B` as plain `Ctrl+B`.
 
 Inside Neo-tree, the keys match the VS Code Explorer: `y` copies, `p` pastes,
 `d` cuts, `x` deletes, `r` renames, `n` creates a file, and `N` creates a

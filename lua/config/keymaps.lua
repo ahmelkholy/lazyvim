@@ -214,7 +214,7 @@ map("n", "<C-S-n>", "<cmd>tab split<cr>", { desc = "Move editor to new tab" })
 map("n", "<S-A-q>", "<cmd>confirm qall<cr>", { desc = "Close Neovim" })
 map({ "n", "t" }, "<A-t>", terminal, { desc = "Terminal group: show or hide" })
 map({ "n", "t" }, "<C-A-b>", terminal, { desc = "Terminal group: show or hide" })
-map("n", "<A-b>", new_terminal, { desc = "Terminal: second pane (max 2)" })
+map({ "n", "t" }, "<A-b>", new_terminal, { desc = "Terminal: split or select pane (max 2)" })
 map({ "n", "t" }, "<C-S-b>", new_terminal, { desc = "Terminal: second pane (max 2)" })
 
 local function send_terminal_continuation()
