@@ -32,11 +32,12 @@ WhichKey will show the available groups and actions.
 
 ## Windows and Panes
 
-On a bare `nvim` start, the config opens a familiar workspace: Explorer on the
-left and two independent editor panes beside it. Each pane has its own title at
-the top, while the bottom status line remains global. Opening a file, directory,
-diff, stdin stream, or saved session keeps the layout requested on the command
-line instead of forcing this workspace.
+On a bare `nvim` start, the config opens Explorer without a blank editor. The
+first selected file creates pane `L`; the second creates pane `R`. A pane closes
+automatically when it no longer has a file, except that modified unnamed content
+is preserved for safety. Each file pane has its own title at the top, while the
+bottom status line remains global. Opening a file, directory, diff, stdin stream,
+or saved session keeps the layout requested on the command line.
 
 Think of `Ctrl+W` as "window command", then press the action:
 
@@ -48,7 +49,7 @@ Think of `Ctrl+W` as "window command", then press the action:
 | Close current window | `Ctrl+W c` |
 | Equalize sizes | `Ctrl+W =` |
 | Maximize/restore | `<leader>wm` |
-| Rebuild the default workspace | `<leader>wL` or `:WorkspaceLayout` |
+| Restore Explorer and file panes | `<leader>wL` or `:WorkspaceLayout` |
 
 These navigation keys also cross tmux panes, so the same movement works inside
 and outside Neovim splits.
@@ -80,11 +81,11 @@ Hidden, ignored, and dot files are visible in Neo-tree and included in file and
 grep pickers. Inside Neo-tree, `y` copies, `p` pastes, `d` cuts, `x` deletes,
 `r` renames, `n` creates a file, and `N` creates a directory.
 
-Pressing Enter or double-clicking a file in Explorer opens it in the opposite
-editor pane: right goes to left, then left goes to right. Repeated selections
-therefore rotate between `L` and `R`, while each pane retains its previous files
-in its own four-tab row. Selecting a directory expands or collapses it in
-Explorer instead of replacing an editor.
+Pressing Enter or double-clicking a file in an empty workspace creates pane `L`.
+The next file creates pane `R`; later selections open in the opposite pane, so
+they rotate between `L` and `R`. Each pane retains its previous files in its own
+four-tab row. Selecting a directory expands or collapses it in Explorer instead
+of replacing an editor.
 
 ## Editing Essentials
 

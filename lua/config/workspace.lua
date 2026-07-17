@@ -3,6 +3,7 @@ local LazyVim = require("lazyvim.util")
 local M = {
   max_tabs = 4,
   _arranging = false,
+  _cleanup_scheduled = false,
 }
 
 ---@type table<number, number[]>
@@ -19,6 +20,24 @@ local function is_regular_window(win)
   return vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_config(win).relative == ""
 end
 
+local function is_empty_editor_buffer(buf)
+  if not vim.api.nvim_buf_is_valid(buf) then
+    return false
+  end
+
+  local filetype = vim.api.nvim_get_option_value("filetype", { buf = buf })
+  local modified = vim.api.nvim_get_option_value("modified", { buf = buf })
+  if starter_filetypes[filetype] and not modified then
+    return true
+  end
+
+  return vim.api.nvim_get_option_value("buftype", { buf = buf }) == ""
+    and vim.api.nvim_buf_get_name(buf) == ""
+    and not modified
+    and vim.api.nvim_buf_line_count(buf) == 1
+    and vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1] == ""
+end
+
 local function is_editor_window(win)
   if not is_regular_window(win) then
     return false
@@ -30,8 +49,20 @@ local function is_editor_window(win)
   return filetype ~= "neo-tree" and buftype == ""
 end
 
+local function is_empty_pane_window(win)
+  if not is_regular_window(win) then
+    return false
+  end
+  local buf = vim.api.nvim_win_get_buf(win)
+  return vim.api.nvim_get_option_value("filetype", { buf = buf }) ~= "neo-tree" and is_empty_editor_buffer(buf)
+end
+
+local function is_file_window(win)
+  return is_editor_window(win) and not is_empty_editor_buffer(vim.api.nvim_win_get_buf(win))
+end
+
 local function editor_windows()
-  local windows = vim.tbl_filter(is_editor_window, vim.api.nvim_tabpage_list_wins(0))
+  local windows = vim.tbl_filter(is_file_window, vim.api.nvim_tabpage_list_wins(0))
   table.sort(windows, function(left, right)
     local left_position = vim.api.nvim_win_get_position(left)
     local right_position = vim.api.nvim_win_get_position(right)
@@ -53,7 +84,9 @@ local function tree_window()
 end
 
 local function valid_editor_buffer(buf)
-  return vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_get_option_value("buftype", { buf = buf }) == ""
+  return vim.api.nvim_buf_is_valid(buf)
+    and vim.api.nvim_get_option_value("buftype", { buf = buf }) == ""
+    and not is_empty_editor_buffer(buf)
 end
 
 local function clean_history(win)
@@ -142,19 +175,6 @@ local function arrange(callback)
   return result
 end
 
-local function fresh_buffer(buf)
-  local filetype = vim.api.nvim_get_option_value("filetype", { buf = buf })
-  if starter_filetypes[filetype] then
-    return true
-  end
-
-  return vim.api.nvim_buf_get_name(buf) == ""
-    and not vim.api.nvim_get_option_value("modified", { buf = buf })
-    and vim.api.nvim_get_option_value("buftype", { buf = buf }) == ""
-    and vim.api.nvim_buf_line_count(buf) == 1
-    and vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1] == ""
-end
-
 function M.should_open_automatically()
   if vim.g.vscode or #vim.api.nvim_list_uis() == 0 then
     return false
@@ -165,7 +185,7 @@ function M.should_open_automatically()
   if #vim.api.nvim_list_tabpages() ~= 1 or #vim.api.nvim_tabpage_list_wins(0) ~= 1 then
     return false
   end
-  return fresh_buffer(vim.api.nvim_get_current_buf())
+  return is_empty_editor_buffer(vim.api.nvim_get_current_buf())
 end
 
 function M.tabs(win)
@@ -193,30 +213,62 @@ function M.pane_role(win)
   end
 end
 
-function M.ensure_editor_panes()
-  if vim.g.vscode then
-    return {}
+function M.close_empty_panes()
+  if vim.g.vscode or M._arranging then
+    return
   end
 
-  local windows = arrange(function()
-    local editors = editor_windows()
-    if #editors == 0 then
-      vim.cmd("rightbelow vnew")
-      editors = editor_windows()
-    end
-    if #editors == 1 then
-      vim.api.nvim_set_current_win(editors[1])
-      -- Preserve the existing editor on the right and create the Explorer's
-      -- deterministic file target on its left.
-      vim.cmd("leftabove vnew")
-    end
-    return editor_windows()
-  end) or editor_windows()
+  local needs_explorer = false
+  arrange(function()
+    local candidates = vim.tbl_filter(function(win)
+      return is_empty_pane_window(win)
+    end, vim.api.nvim_tabpage_list_wins(0))
 
-  for _, win in ipairs(windows) do
-    record_buffer(win, vim.api.nvim_win_get_buf(win))
+    for _, win in ipairs(candidates) do
+      if vim.api.nvim_win_is_valid(win) then
+        local has_other_window = false
+        for _, other in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+          if other ~= win and is_regular_window(other) then
+            has_other_window = true
+            break
+          end
+        end
+
+        if has_other_window then
+          local buf = vim.api.nvim_win_get_buf(win)
+          pcall(vim.api.nvim_win_close, win, false)
+          if vim.api.nvim_buf_is_valid(buf) and is_empty_editor_buffer(buf) and not buffer_is_visible(buf) then
+            pcall(vim.api.nvim_buf_delete, buf, { force = false })
+          end
+        else
+          -- Neovim cannot close its final window. Replace a last empty editor
+          -- with Explorer, then let the scheduled cleanup remove the editor.
+          needs_explorer = true
+        end
+      end
+    end
+  end)
+
+  if needs_explorer then
+    require("neo-tree.command").execute({
+      action = "focus",
+      source = "filesystem",
+      position = "left",
+      dir = LazyVim.root(),
+    })
+    M.schedule_empty_pane_cleanup()
   end
-  return windows
+end
+
+function M.schedule_empty_pane_cleanup()
+  if vim.g.vscode or M._cleanup_scheduled then
+    return
+  end
+  M._cleanup_scheduled = true
+  vim.schedule(function()
+    M._cleanup_scheduled = false
+    M.close_empty_panes()
+  end)
 end
 
 function M.open_or_focus_explorer()
@@ -227,7 +279,6 @@ function M.open_or_focus_explorer()
   local source_win = is_editor_window(vim.api.nvim_get_current_win()) and vim.api.nvim_get_current_win() or nil
   local path = vim.api.nvim_buf_get_name(0)
   local root = LazyVim.root()
-  M.ensure_editor_panes()
   local source_role = source_win and M.pane_role(source_win) or nil
   if source_role then
     vim.t.workspace_last_editor_role = source_role
@@ -240,6 +291,7 @@ function M.open_or_focus_explorer()
   local existing = tree_window()
   if existing then
     vim.api.nvim_set_current_win(existing)
+    M.schedule_empty_pane_cleanup()
     return
   end
 
@@ -251,6 +303,7 @@ function M.open_or_focus_explorer()
     reveal_file = path ~= "" and path or nil,
     reveal_force_cwd = true,
   })
+  M.schedule_empty_pane_cleanup()
 end
 
 function M.open_file_in_next_pane(path, state)
@@ -258,25 +311,51 @@ function M.open_file_in_next_pane(path, state)
     return false
   end
 
-  local editors = M.ensure_editor_panes()
+  M.close_empty_panes()
+  local editors = editor_windows()
   local source_role = vim.t.workspace_explorer_source_role or vim.t.workspace_last_editor_role
   vim.t.workspace_explorer_source_role = nil
-  local target_role = source_role == "L" and "R" or "L"
-  local target = target_role == "R" and editors[2] or editors[1]
-  if not target or not vim.api.nvim_win_is_valid(target) then
-    vim.notify("No target editor pane is available", vim.log.levels.ERROR)
-    return false
+
+  local absolute_path = vim.fs.normalize(vim.fn.fnamemodify(path, ":p"))
+  for _, win in ipairs(editors) do
+    local buf = vim.api.nvim_win_get_buf(win)
+    local name = vim.api.nvim_buf_get_name(buf)
+    if name ~= "" and vim.fs.normalize(vim.fn.fnamemodify(name, ":p")) == absolute_path then
+      vim.api.nvim_set_current_win(win)
+      vim.t.workspace_last_editor_role = M.pane_role(win)
+      if state then
+        local events = require("neo-tree.events")
+        events.fire_event(events.FILE_OPENED, path)
+      end
+      return true
+    end
   end
 
-  vim.api.nvim_set_current_win(target)
-  local ok, err = pcall(vim.cmd.edit, vim.fn.fnameescape(path))
-  if not ok then
-    vim.notify(err, vim.log.levels.ERROR, { title = "Open file" })
+  local target
+  local ok
+  local err
+  if #editors < 2 then
+    local anchor = editors[1] or tree_window() or vim.api.nvim_get_current_win()
+    vim.api.nvim_set_current_win(anchor)
+    ok, err = pcall(vim.cmd, "rightbelow vsplit " .. vim.fn.fnameescape(path))
+    target = ok and vim.api.nvim_get_current_win() or nil
+  else
+    local target_role = source_role == "L" and "R" or "L"
+    target = target_role == "R" and editors[2] or editors[1]
+    if target and vim.api.nvim_win_is_valid(target) then
+      vim.api.nvim_set_current_win(target)
+      ok, err = pcall(vim.cmd.edit, vim.fn.fnameescape(path))
+    end
+  end
+
+  if not ok or not target or not vim.api.nvim_win_is_valid(target) then
+    vim.notify(tostring(err or "No target editor pane is available"), vim.log.levels.ERROR, { title = "Open file" })
     return false
   end
 
   record_buffer(target, vim.api.nvim_win_get_buf(target))
-  vim.t.workspace_last_editor_role = target_role
+  vim.t.workspace_last_editor_role = M.pane_role(target)
+  M.schedule_empty_pane_cleanup()
   if state then
     local events = require("neo-tree.events")
     events.fire_event(events.FILE_OPENED, path)
@@ -339,36 +418,18 @@ function M.open()
   end
 
   local root = LazyVim.root()
-  arrange(function()
-    local current_buf = vim.api.nvim_get_current_buf()
-    local current_ft = vim.api.nvim_get_option_value("filetype", { buf = current_buf })
-    if starter_filetypes[current_ft] and not vim.api.nvim_get_option_value("modified", { buf = current_buf }) then
-      vim.cmd.enew()
-    end
-
-    local editors = M.ensure_editor_panes()
-    require("neo-tree.command").execute({
-      action = "show",
-      source = "filesystem",
-      position = "left",
-      dir = root,
-    })
-
-    if editors[1] and vim.api.nvim_win_is_valid(editors[1]) then
-      vim.api.nvim_set_current_win(editors[1])
-      vim.t.workspace_last_editor_role = "L"
-    end
-    vim.cmd.wincmd("=")
-  end)
-
-  for _, win in ipairs(editor_windows()) do
-    record_buffer(win, vim.api.nvim_win_get_buf(win))
-  end
+  require("neo-tree.command").execute({
+    action = "focus",
+    source = "filesystem",
+    position = "left",
+    dir = root,
+  })
+  M.schedule_empty_pane_cleanup()
 end
 
 function M.setup()
   vim.api.nvim_create_user_command("WorkspaceLayout", M.open, {
-    desc = "Open Explorer with two independent editor panes",
+    desc = "Open Explorer with up to two file-backed editor panes",
   })
   vim.keymap.set("n", "<leader>wL", M.open, { desc = "Workspace Layout" })
 
@@ -377,13 +438,19 @@ function M.setup()
     group = history_group,
     callback = function()
       record_buffer(vim.api.nvim_get_current_win(), vim.api.nvim_get_current_buf())
+      M.schedule_empty_pane_cleanup()
     end,
   })
   vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
     group = history_group,
     callback = function(event)
       remove_buffer_from_histories(event.buf)
+      M.schedule_empty_pane_cleanup()
     end,
+  })
+  vim.api.nvim_create_autocmd("WinNew", {
+    group = history_group,
+    callback = M.schedule_empty_pane_cleanup,
   })
   vim.api.nvim_create_autocmd("WinClosed", {
     group = history_group,
