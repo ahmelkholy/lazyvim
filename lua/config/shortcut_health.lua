@@ -96,6 +96,7 @@ local required_maps = {
     "<A-f>",
     "<A-t>",
     "<C-A-b>",
+    "<A-b>",
     "<C-S-b>",
     "<S-CR>",
     "<C-CR>",
