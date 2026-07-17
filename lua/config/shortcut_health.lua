@@ -201,7 +201,8 @@ function M.check()
     end
   end
 
-  if vim.fn.has("win32") == 0 then
+  local tmux_config = vim.fn.stdpath("config") .. "/lua/plugins/tmux.lua"
+  if vim.uv.fs_stat(tmux_config) then
     for _, lhs in ipairs({ "<C-h>", "<C-j>", "<C-k>", "<C-l>", "<C-\\>" }) do
       local mapping = vim.fn.maparg(lhs, "n", false, true)
       if not mapping or next(mapping) == nil then
