@@ -18,5 +18,15 @@ return {
         ["Find Subword Under"] = "<leader>mc",
       }
     end,
+    config = function()
+      vim.keymap.set("n", "<leader>mc", "<Plug>(VM-Find-Under)", {
+        remap = true,
+        desc = "Multi-cursor: select word",
+      })
+      vim.keymap.set("x", "<leader>mc", "<Plug>(VM-Find-Subword-Under)", {
+        remap = true,
+        desc = "Multi-cursor: select selection",
+      })
+    end,
   },
 }

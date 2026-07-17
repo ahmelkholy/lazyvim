@@ -173,6 +173,8 @@ available actions.
 | Run/build commands | `<leader>R…` |
 
 Run `:NvimTransition` inside Neovim for the personalized migration guide.
+Run `:ShortcutHealth` to verify leader mappings, custom shortcuts, commands,
+plugin modules, external tools, and clipboard support without changing files.
 
 The automatic Explorer workspace is deliberately limited to a clean `nvim`
 start. It does not rearrange explicit file/directory opens, diffs, stdin, or

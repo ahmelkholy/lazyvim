@@ -10,6 +10,9 @@ behave predictably.
 `<leader>` means Space. When you do not know a command, press Space and wait.
 WhichKey will show the available groups and actions.
 
+Run `:ShortcutHealth` to audit every effective leader mapping, required custom
+shortcut, mapped command, plugin module, external tool, and clipboard provider.
+
 ## Your Most Important Replacements
 
 | Your VS Code instinct | Use in standalone Neovim | Why |

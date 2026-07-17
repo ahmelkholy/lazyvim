@@ -57,6 +57,10 @@ local function explorer_root()
     or normalize_existing_directory(vim.fn.getcwd())
 end
 
+function M.root()
+  return explorer_root()
+end
+
 local function is_empty_editor_buffer(buf)
   if not vim.api.nvim_buf_is_valid(buf) then
     return false
@@ -384,6 +388,35 @@ function M.open_or_focus_explorer()
     dir = root,
     reveal_file = path ~= "" and path or nil,
     reveal_force_cwd = true,
+  })
+end
+
+function M.toggle_explorer()
+  if vim.g.vscode then
+    return
+  end
+
+  open_tree({
+    action = "toggle",
+    source = "filesystem",
+    position = "left",
+    dir = explorer_root(),
+  })
+end
+
+function M.reveal_current_file()
+  if vim.g.vscode then
+    return
+  end
+
+  local path = real_file_path()
+  open_tree({
+    action = "focus",
+    source = "filesystem",
+    position = "left",
+    dir = explorer_root(),
+    reveal_file = path,
+    reveal_force_cwd = path ~= nil,
   })
 end
 
