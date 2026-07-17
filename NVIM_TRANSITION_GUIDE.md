@@ -89,6 +89,10 @@ and `gT` move to the next and previous opened workspace.
 | Next/previous match | `n`, `N` |
 | Search word under cursor | `*`, `#` |
 
+Yanking with `y`, `yy`, or visual `y` also copies the text to the system
+clipboard, like `Ctrl+C` in VS Code. Deletes and changes keep Neovim's normal
+register behavior and do not overwrite that clipboard copy.
+
 Hidden, ignored, and dot files are visible in Neo-tree and included in file and
 grep pickers. Inside Neo-tree, `y` copies, `p` pastes, `d` cuts, `x` deletes,
 `r` renames, `n` creates a file, and `N` creates a directory.

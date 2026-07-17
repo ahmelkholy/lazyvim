@@ -13,7 +13,9 @@ return {
           end,
         },
         follow_current_file = {
-          enabled = true,
+          -- Virtual buffers such as gitsigns:// are not filesystem paths.
+          -- Explicit reveal from Ctrl+Alt+D still follows real files safely.
+          enabled = false,
           leave_dirs_open = true,
         },
         use_libuv_file_watcher = true,

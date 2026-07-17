@@ -232,6 +232,9 @@ nvim --headless "+Lazy! sync" +qa
 
 ## Troubleshooting
 
+Yanking with `y`, `yy`, or visual `y` mirrors the copied text to the system
+clipboard. Deletes and changes do not replace that clipboard content.
+
 If icons render as boxes, install a Nerd Font and configure your terminal or VS
 Code to use it.
 

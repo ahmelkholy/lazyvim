@@ -25,6 +25,38 @@ local function is_exiting()
   return vim.v.exiting ~= vim.NIL
 end
 
+local function normalize_existing_directory(path)
+  if not path or path == "" then
+    return nil
+  end
+
+  path = vim.fs.normalize(vim.fn.fnamemodify(vim.fn.expand(path), ":p"))
+  local stat = vim.uv.fs_stat(path)
+  return stat and stat.type == "directory" and path or nil
+end
+
+local function real_file_path(buf)
+  buf = buf or vim.api.nvim_get_current_buf()
+  if vim.api.nvim_get_option_value("buftype", { buf = buf }) ~= "" then
+    return nil
+  end
+
+  local path = vim.api.nvim_buf_get_name(buf)
+  if path == "" or path:match("^%a[%w+.-]*://") then
+    return nil
+  end
+
+  path = vim.fs.normalize(vim.fn.fnamemodify(path, ":p"))
+  local stat = vim.uv.fs_stat(path)
+  return stat and stat.type == "file" and path or nil
+end
+
+local function explorer_root()
+  return normalize_existing_directory(vim.t.workspace_root)
+    or normalize_existing_directory(LazyVim.root())
+    or normalize_existing_directory(vim.fn.getcwd())
+end
+
 local function is_empty_editor_buffer(buf)
   if not vim.api.nvim_buf_is_valid(buf) then
     return false
@@ -185,6 +217,16 @@ local function open_tree(options)
     return true
   end
 
+  options.dir = normalize_existing_directory(options.dir) or explorer_root()
+  options.reveal_file = options.reveal_file and real_file_path() or nil
+  if not options.reveal_file then
+    options.reveal_force_cwd = nil
+  end
+  if not options.dir then
+    vim.notify("No existing directory is available for Explorer", vim.log.levels.ERROR, { title = "Explorer" })
+    return false
+  end
+
   M._opening_explorer = true
   local ok, err = pcall(require("neo-tree.command").execute, options)
   if not ok then
@@ -279,7 +321,7 @@ function M.close_empty_panes()
       action = "focus",
       source = "filesystem",
       position = "left",
-      dir = LazyVim.root(),
+      dir = explorer_root(),
     })
   end
 end
@@ -304,8 +346,8 @@ function M.open_or_focus_explorer()
   end
 
   local source_win = is_editor_window(vim.api.nvim_get_current_win()) and vim.api.nvim_get_current_win() or nil
-  local path = vim.api.nvim_buf_get_name(0)
-  local root = LazyVim.root()
+  local path = real_file_path()
+  local root = explorer_root()
   local source_role = source_win and M.pane_role(source_win) or nil
   if source_role then
     vim.t.workspace_last_editor_role = source_role
@@ -443,7 +485,7 @@ function M.open()
     return
   end
 
-  local root = LazyVim.root()
+  local root = explorer_root()
   open_tree({
     action = "focus",
     source = "filesystem",
