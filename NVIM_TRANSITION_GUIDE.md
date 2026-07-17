@@ -58,8 +58,20 @@ The title above each pane is the ownership marker that VS Code normally provides
 with editor-group tabs. Each editor pane holds up to four local tabs. `▸` marks
 the selected tab, `+` marks unsaved changes, and the badge says `L` or `R`.
 Opening a fifth file removes that pane's oldest tab. Modified or visible buffers
-are kept safely loaded even when they leave the four-tab row. Actual Neovim tab
-pages appear at the very top only when more than one exists.
+are kept safely loaded even when they leave the four-tab row.
+
+## Workspaces
+
+The top row lists opened workspaces as Neovim tab pages. Any folder containing
+`.git` is detected and saved automatically when you open one of its files. Use
+`<leader>fw` or `:Workspaces` for the VS Code-style workspace picker. Enter
+switches to an open workspace or opens a saved one, `Ctrl+T` opens another
+workspace tab, `Ctrl+A` saves the current directory, and `Ctrl+D` removes the
+selected saved entry.
+
+Use `<leader>wa` or `:WorkspaceAdd` to save a non-Git directory. Use
+`<leader>wc` or `:WorkspaceClose` to close the current workspace. Native `gt`
+and `gT` move to the next and previous opened workspace.
 
 ## Files, Buffers, and Search
 
