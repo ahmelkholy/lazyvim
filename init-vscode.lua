@@ -12,6 +12,7 @@ vim.opt.writebackup = false
 vim.opt.spell = false
 vim.opt.wrap = true
 vim.opt.linebreak = true
+vim.opt.clipboard = "unnamedplus"
 vim.opt.report = 999999
 vim.opt.shortmess:append({ W = true, c = true, C = true, F = true, S = true })
 
@@ -33,6 +34,7 @@ end
 -- Keep undo in VS Code so edits from both engines share one undo history.
 map("n", "u", action("undo"), { silent = true, desc = "VS Code undo" })
 map("n", "<C-r>", action("redo"), { silent = true, desc = "VS Code redo" })
+map("v", "<C-c>", '"+y', { silent = true, desc = "Copy visual selection to system clipboard" })
 
 -- LazyVim-shaped aliases backed by native VS Code surfaces.
 map("n", "<leader><space>", action("workbench.action.quickOpen"), { desc = "Find files" })
