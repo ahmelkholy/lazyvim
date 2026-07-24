@@ -69,14 +69,68 @@ local function run_menu_item(item)
   vscode.action(item.command)
 end
 
-local function map_prefix_menu(prefix, name, items, on_timeout)
+local passthrough_suffixes = {}
+for codepoint = 32, 126 do
+  table.insert(passthrough_suffixes, string.char(codepoint))
+end
+for _, key in ipairs({
+  "<CR>",
+  "<Tab>",
+  "<Up>",
+  "<Down>",
+  "<Left>",
+  "<Right>",
+  "<Home>",
+  "<End>",
+  "<C-b>",
+  "<C-c>",
+  "<C-d>",
+  "<C-f>",
+  "<C-g>",
+  "<C-h>",
+  "<C-i>",
+  "<C-j>",
+  "<C-k>",
+  "<C-l>",
+  "<C-n>",
+  "<C-o>",
+  "<C-p>",
+  "<C-q>",
+  "<C-r>",
+  "<C-s>",
+  "<C-t>",
+  "<C-v>",
+  "<C-w>",
+  "<C-x>",
+  "<C-z>",
+  "<C-]>",
+  "<C-^>",
+  "<C-_>",
+}) do
+  table.insert(passthrough_suffixes, key)
+end
+
+local function map_prefix_menu(prefix, name, items, on_timeout, preserve_unlisted)
   -- Longer mappings preserve normal fast sequences such as `gg` and `za`.
   -- The exact prefix mapping runs only after timeoutlen, opening discovery.
+  local mapped_keys = {}
   for _, item in ipairs(items) do
     local mapped_item = item
+    mapped_keys[mapped_item.key] = true
     map("n", prefix .. mapped_item.key, function()
       run_menu_item(mapped_item)
     end, { silent = true, desc = mapped_item.name })
+  end
+
+  if preserve_unlisted then
+    for _, suffix in ipairs(passthrough_suffixes) do
+      if not mapped_keys[suffix] then
+        local native_sequence = prefix .. suffix
+        map("n", native_sequence, function()
+          feed_native(native_sequence)
+        end, { silent = true, desc = "Native " .. native_sequence })
+      end
+    end
   end
 
   map("n", prefix, on_timeout or function()
@@ -89,7 +143,7 @@ local function map_neovim_prefix(prefix, name, definitions)
   for _, definition in ipairs(definitions) do
     table.insert(items, neovim_item(prefix, definition[1], definition[2], definition[3]))
   end
-  map_prefix_menu(prefix, name, items)
+  map_prefix_menu(prefix, name, items, nil, true)
 end
 
 map_neovim_prefix("g", "Goto", {
@@ -178,8 +232,8 @@ local next_items = {
   neovim_item("]", ")", "Next unmatched parenthesis"),
 }
 
-map_prefix_menu("[", "Previous", previous_items)
-map_prefix_menu("]", "Next", next_items)
+map_prefix_menu("[", "Previous", previous_items, nil, true)
+map_prefix_menu("]", "Next", next_items, nil, true)
 
 local register_names = {
   ['"'] = "Unnamed register",
@@ -267,7 +321,7 @@ local window_items = {
   command_item("=", "Equal editor widths", "workbench.action.evenEditorWidths"),
 }
 
-map_prefix_menu("<C-w>", "Windows", window_items)
+map_prefix_menu("<C-w>", "Windows", window_items, nil, true)
 
 -- Keep undo in VS Code so edits from both engines share one undo history.
 map("n", "u", action("undo"), { silent = true, desc = "VS Code undo" })
