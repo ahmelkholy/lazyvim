@@ -51,7 +51,9 @@ local function neovim_item(prefix, key, name, sequence)
 end
 
 local function show_which_key(items)
-  vscode.action("whichkey.show", { args = { items } })
+  -- Wait until VS Code has created and focused Quick Pick. An asynchronous
+  -- handoff can be dropped when the prefix mapping itself is timing out.
+  vscode.call("whichkey.show", { args = { items } }, 1000)
 end
 
 local function feed_native(keys)
@@ -68,6 +70,22 @@ local function run_menu_item(item)
   end
   vscode.action(item.command)
 end
+
+-- These mappings are supplied by VSCode-Neovim and use its viewport/LSP bridge.
+-- Replacing them with a non-remapped native sequence breaks their VS Code effect.
+local vscode_native_overrides = {
+  ["zt"] = true,
+  ["zz"] = true,
+  ["zb"] = true,
+  ["z<CR>"] = true,
+  ["z."] = true,
+  ["z-"] = true,
+  ["gf"] = true,
+  ["gd"] = true,
+  ["gO"] = true,
+  ["gD"] = true,
+  ["gH"] = true,
+}
 
 local passthrough_suffixes = {}
 for codepoint = 32, 126 do
@@ -112,20 +130,25 @@ end
 
 local function map_prefix_menu(prefix, name, items, on_timeout, preserve_unlisted)
   -- Longer mappings preserve normal fast sequences such as `gg` and `za`.
+  -- Keep VSCode-Neovim's own overrides (notably zt/zz/zb viewport reveal).
   -- The exact prefix mapping runs only after timeoutlen, opening discovery.
   local mapped_keys = {}
   for _, item in ipairs(items) do
     local mapped_item = item
     mapped_keys[mapped_item.key] = true
-    map("n", prefix .. mapped_item.key, function()
-      run_menu_item(mapped_item)
-    end, { silent = true, desc = mapped_item.name })
+    local sequence = prefix .. mapped_item.key
+    local existing = vim.fn.maparg(sequence, "n", false, true)
+    if not (vscode_native_overrides[sequence] and not vim.tbl_isempty(existing)) then
+      map("n", sequence, function()
+        run_menu_item(mapped_item)
+      end, { silent = true, desc = mapped_item.name })
+    end
   end
 
   if preserve_unlisted then
     for _, suffix in ipairs(passthrough_suffixes) do
-      if not mapped_keys[suffix] then
-        local native_sequence = prefix .. suffix
+      local native_sequence = prefix .. suffix
+      if not mapped_keys[suffix] and vim.tbl_isempty(vim.fn.maparg(native_sequence, "n", false, true)) then
         map("n", native_sequence, function()
           feed_native(native_sequence)
         end, { silent = true, desc = "Native " .. native_sequence })
