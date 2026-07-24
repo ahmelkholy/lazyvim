@@ -54,14 +54,42 @@ local function show_which_key(items)
   vscode.action("whichkey.show", { args = { items } })
 end
 
+local function feed_native(keys)
+  local count = vim.v.count
+  local sequence = (count > 0 and tostring(count) or "") .. keys
+  local termcodes = vim.api.nvim_replace_termcodes(sequence, true, false, true)
+  vim.api.nvim_feedkeys(termcodes, "n", false)
+end
+
+local function run_menu_item(item)
+  if item.command == "vscode-neovim.send" then
+    feed_native(item.args)
+    return
+  end
+  vscode.action(item.command)
+end
+
+local function map_prefix_menu(prefix, name, items, on_timeout)
+  -- Longer mappings preserve normal fast sequences such as `gg` and `za`.
+  -- The exact prefix mapping runs only after timeoutlen, opening discovery.
+  for _, item in ipairs(items) do
+    local mapped_item = item
+    map("n", prefix .. mapped_item.key, function()
+      run_menu_item(mapped_item)
+    end, { silent = true, desc = mapped_item.name })
+  end
+
+  map("n", prefix, on_timeout or function()
+    show_which_key(items)
+  end, { silent = true, desc = name .. " (Which Key)" })
+end
+
 local function map_neovim_prefix(prefix, name, definitions)
   local items = {}
   for _, definition in ipairs(definitions) do
     table.insert(items, neovim_item(prefix, definition[1], definition[2], definition[3]))
   end
-  map("n", prefix, function()
-    show_which_key(items)
-  end, { silent = true, desc = name .. " (Which Key)" })
+  map_prefix_menu(prefix, name, items)
 end
 
 map_neovim_prefix("g", "Goto", {
@@ -150,13 +178,8 @@ local next_items = {
   neovim_item("]", ")", "Next unmatched parenthesis"),
 }
 
-map("n", "[", function()
-  show_which_key(previous_items)
-end, { silent = true, desc = "Previous (Which Key)" })
-
-map("n", "]", function()
-  show_which_key(next_items)
-end, { silent = true, desc = "Next (Which Key)" })
+map_prefix_menu("[", "Previous", previous_items)
+map_prefix_menu("]", "Next", next_items)
 
 local register_names = {
   ['"'] = "Unnamed register",
@@ -196,21 +219,17 @@ local record_registers = register_menu("q", "Record macro in", true)
 local execute_registers = register_menu("@", "Execute macro from", false)
 table.insert(execute_registers, 1, neovim_item("@", "@", "Repeat last macro"))
 
-map("n", '"', function()
-  show_which_key(named_registers)
-end, { silent = true, desc = "Registers (Which Key)" })
+map_prefix_menu('"', "Registers", named_registers)
 
-map("n", "q", function()
+map_prefix_menu("q", "Record macro", record_registers, function()
   if vim.fn.reg_recording() ~= "" then
-    vim.api.nvim_feedkeys("q", "n", false)
+    feed_native("q")
     return
   end
   show_which_key(record_registers)
-end, { silent = true, desc = "Record macro (Which Key)" })
+end)
 
-map("n", "@", function()
-  show_which_key(execute_registers)
-end, { silent = true, desc = "Execute macro (Which Key)" })
+map_prefix_menu("@", "Execute macro", execute_registers)
 
 local function mark_menu(prefix, verb)
   local items = {}
@@ -227,17 +246,9 @@ local set_marks = mark_menu("m", "Set")
 local jump_marks_line = mark_menu("'", "Jump to line of")
 local jump_marks_exact = mark_menu("`", "Jump exactly to")
 
-map("n", "m", function()
-  show_which_key(set_marks)
-end, { silent = true, desc = "Set mark (Which Key)" })
-
-map("n", "'", function()
-  show_which_key(jump_marks_line)
-end, { silent = true, desc = "Jump to mark line (Which Key)" })
-
-map("n", "`", function()
-  show_which_key(jump_marks_exact)
-end, { silent = true, desc = "Jump to mark position (Which Key)" })
+map_prefix_menu("m", "Set mark", set_marks)
+map_prefix_menu("'", "Jump to mark line", jump_marks_line)
+map_prefix_menu("`", "Jump to mark position", jump_marks_exact)
 
 local window_items = {
   command_item("h", "Focus left group", "workbench.action.focusLeftGroup"),
@@ -256,9 +267,7 @@ local window_items = {
   command_item("=", "Equal editor widths", "workbench.action.evenEditorWidths"),
 }
 
-map("n", "<C-w>", function()
-  show_which_key(window_items)
-end, { silent = true, desc = "Windows (Which Key)" })
+map_prefix_menu("<C-w>", "Windows", window_items)
 
 -- Keep undo in VS Code so edits from both engines share one undo history.
 map("n", "u", action("undo"), { silent = true, desc = "VS Code undo" })
