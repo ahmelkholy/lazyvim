@@ -46,8 +46,15 @@ local function apply_visual_wrap(win)
   end
   vim.wo[win].wrap = true
   vim.wo[win].linebreak = true
-  vim.wo[win].breakindent = true
-  vim.wo[win].showbreak = "↪ "
+  if vim.bo[buf].filetype == "markdown" then
+    -- Render prose like a normal paragraph: continuation lines begin at the
+    -- left edge without a wrap marker or synthetic indentation.
+    vim.wo[win].breakindent = false
+    vim.wo[win].showbreak = ""
+  else
+    vim.wo[win].breakindent = true
+    vim.wo[win].showbreak = "↪ "
+  end
 end
 
 vim.api.nvim_create_autocmd({ "FileType", "BufWinEnter", "WinEnter" }, {

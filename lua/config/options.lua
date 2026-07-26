@@ -11,7 +11,8 @@ vim.opt.wrap = true
 vim.opt.linebreak = true
 vim.opt.breakindent = true
 vim.opt.breakindentopt = "shift:2,min:20"
-vim.opt.showbreak = "↪ "
+-- Prose uses no continuation marker. Code windows opt into one in autocmds.
+vim.opt.showbreak = ""
 vim.opt.smoothscroll = true
 vim.opt.scrolloff = 6
 vim.opt.sidescrolloff = 8
