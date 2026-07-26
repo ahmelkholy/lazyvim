@@ -25,3 +25,50 @@ vim.api.nvim_create_autocmd("TextYankPost", {
   end,
   desc = "Mirror yanks to the system clipboard",
 })
+-- Keep all real code and document buffers inside the visible window. Plugins
+-- can create windows after the global options are applied, so reinforce these
+-- display-only settings without affecting terminals, pickers, or dashboards.
+local visual_wrap = vim.api.nvim_create_augroup("visual_wrap", { clear = true })
+
+local function is_readable_buffer(buf)
+  return vim.api.nvim_buf_is_valid(buf)
+    and vim.bo[buf].buftype == ""
+    and vim.bo[buf].filetype ~= "snacks_picker_input"
+end
+
+local function apply_visual_wrap(win)
+  if not vim.api.nvim_win_is_valid(win) then
+    return
+  end
+  local buf = vim.api.nvim_win_get_buf(win)
+  if not is_readable_buffer(buf) and not vim.wo[win].diff then
+    return
+  end
+  vim.wo[win].wrap = true
+  vim.wo[win].linebreak = true
+  vim.wo[win].breakindent = true
+  vim.wo[win].showbreak = "↪ "
+end
+
+vim.api.nvim_create_autocmd({ "FileType", "BufWinEnter", "WinEnter" }, {
+  group = visual_wrap,
+  callback = function()
+    apply_visual_wrap(vim.api.nvim_get_current_win())
+  end,
+  desc = "Wrap code, documents, and diffs cleanly",
+})
+
+vim.api.nvim_create_autocmd("OptionSet", {
+  group = visual_wrap,
+  pattern = "diff",
+  callback = function()
+    vim.schedule(function()
+      for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+        if vim.wo[win].diff then
+          apply_visual_wrap(win)
+        end
+      end
+    end)
+  end,
+  desc = "Wrap both sides as soon as diff mode starts",
+})
