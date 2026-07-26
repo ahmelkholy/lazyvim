@@ -46,14 +46,15 @@ local function apply_visual_wrap(win)
   end
   vim.wo[win].wrap = true
   vim.wo[win].linebreak = true
+  -- Clear this locally as well as globally so restored sessions and plugin
+  -- windows cannot retain an old continuation marker.
+  vim.wo[win].showbreak = ""
   if vim.bo[buf].filetype == "markdown" then
     -- Render prose like a normal paragraph: continuation lines begin at the
     -- left edge without a wrap marker or synthetic indentation.
     vim.wo[win].breakindent = false
-    vim.wo[win].showbreak = ""
   else
     vim.wo[win].breakindent = true
-    vim.wo[win].showbreak = "↪ "
   end
 end
 
