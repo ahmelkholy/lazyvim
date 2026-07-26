@@ -5,6 +5,29 @@
 vim.g.lazyvim_python_lsp = "pyright"
 vim.g.lazyvim_python_ruff = "ruff"
 
+-- Keep source code readable at every window width. These are display settings:
+-- they never insert line breaks or otherwise modify the file.
+vim.opt.wrap = true
+vim.opt.linebreak = true
+vim.opt.breakindent = true
+vim.opt.breakindentopt = "shift:2,min:20"
+vim.opt.showbreak = "↪ "
+vim.opt.smoothscroll = true
+vim.opt.scrolloff = 6
+vim.opt.sidescrolloff = 8
+vim.opt.cursorline = true
+vim.opt.cursorlineopt = "number,line"
+vim.opt.signcolumn = "yes"
+vim.opt.foldcolumn = "1"
+vim.opt.list = true
+vim.opt.listchars = {
+  tab = "→ ",
+  trail = "·",
+  extends = "›",
+  precedes = "‹",
+  nbsp = "␣",
+}
+
 -- Graphical Neovim clients can apply this directly. Terminal Neovim inherits
 -- its font from the terminal (the VS Code workspace uses the same Nerd Font).
 vim.opt.guifont = "JetBrainsMono Nerd Font Mono:h14"
