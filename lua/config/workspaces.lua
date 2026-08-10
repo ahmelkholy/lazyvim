@@ -59,21 +59,57 @@ local function tab_has_content(tab)
   return false
 end
 
+local project_set_pwd
+local get_recent_projects = function()
+  return {}
+end
+local write_projects_to_history = function()
+end
+local history_session_projects = {}
+local history_recent_projects = {}
+
+if not vim.g.vscode then
+  local ok_project, project_module = pcall(require, "project_nvim.project")
+  if ok_project then
+    project_set_pwd = function(path, mode)
+      pcall(project_module.set_pwd, path, mode)
+    end
+  end
+
+  local ok_history, history_module = pcall(require, "project_nvim.utils.history")
+  if ok_history then
+    get_recent_projects = function()
+      return history_module.get_recent_projects() or {}
+    end
+    write_projects_to_history = function()
+      pcall(history_module.write_projects_to_history)
+    end
+    history_session_projects = history_module.session_projects or history_session_projects
+    history_recent_projects = history_module.recent_projects or history_recent_projects
+  end
+end
+
 local function remember(path)
-  local history = require("project_nvim.utils.history")
-  for _, project in ipairs(history.get_recent_projects()) do
+  for _, project in ipairs(get_recent_projects()) do
     if normalize(project) == path then
       return
     end
   end
-  history.session_projects[#history.session_projects + 1] = path
+  for _, project in ipairs(history_session_projects) do
+    if normalize(project) == path then
+      return
+    end
+  end
+  history_session_projects[#history_session_projects + 1] = path
 end
 
 local function set_current_workspace(path)
   vim.cmd("tcd " .. vim.fn.fnameescape(path))
   vim.t.workspace_root = path
   vim.t.workspace_name = workspace_name(path)
-  require("project_nvim.project").set_pwd(path, "workspace")
+  if project_set_pwd then
+    project_set_pwd(path, "workspace")
+  end
   remember(path)
 end
 
@@ -99,7 +135,7 @@ function M.list()
   for _, tab in ipairs(vim.api.nvim_list_tabpages()) do
     add(tab_root(tab))
   end
-  for _, path in ipairs(require("project_nvim.utils.history").get_recent_projects()) do
+  for _, path in ipairs(get_recent_projects()) do
     add(path)
   end
   add(LazyVim.root())
@@ -114,7 +150,7 @@ function M.add(path)
   end
 
   remember(path)
-  require("project_nvim.utils.history").write_projects_to_history()
+  write_projects_to_history()
   vim.notify("Workspace saved: " .. path)
   return true
 end
@@ -125,15 +161,14 @@ function M.remove(path)
     return false
   end
 
-  local history = require("project_nvim.utils.history")
-  for _, collection in ipairs({ history.recent_projects or {}, history.session_projects }) do
+  for _, collection in ipairs({ history_recent_projects, history_session_projects }) do
     for index = #collection, 1, -1 do
       if normalize(collection[index]) == path then
         table.remove(collection, index)
       end
     end
   end
-  history.write_projects_to_history()
+  write_projects_to_history()
   vim.notify("Workspace removed from the saved list: " .. path)
   return true
 end
