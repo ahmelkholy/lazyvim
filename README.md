@@ -1,18 +1,20 @@
-# Windows Neovim LazyVim Config
+# Cross-Platform Neovim LazyVim Config
 
-The `main` branch targets Windows while keeping the same standalone and
-VSCode-Neovim workflow as the Unix branch. Install it in the normal Windows
-configuration path:
+The single `main` branch supports Windows, macOS, and Linux. Windows behavior is
+the source of truth; the Unix support is conditional and does not change the
+Windows keymaps or workflow. Install it in the normal platform configuration
+path:
 
 ```text
-%LOCALAPPDATA%\nvim
+Windows: %LOCALAPPDATA%\nvim
+macOS/Linux: ~/.config/nvim
 ```
 
 ## Status
 
 - Branch: `main`
-- Main target: Windows standalone Neovim, VSCode Neovim, and daily development
-- Branch policy: `main` is Windows; `linux` is Linux and macOS
+- Main target: identical standalone and VSCode-Neovim behavior on every OS
+- Branch policy: `main` is the only configuration branch
 - Base: [LazyVim](https://www.lazyvim.org/)
 - Local Neovim path: `C:\Program Files\Neovim\bin\nvim.exe`
 - Default theme: Monokai
@@ -35,7 +37,7 @@ configuration path:
   the VSCode Neovim extension.
 - Uses a lightweight `init-vscode.lua` backend in VS Code so the full standalone
   plugin stack cannot slow down or interfere with VS Code's UI.
-- Adds Windows VS Code settings for the Neovim executable and init file.
+- Adds Windows, macOS, and Linux VS Code paths in the same settings file.
 - Shows opened workspaces in the top tab row and automatically remembers Git
   roots.
 - Adds LazyVim extras for Python, Julia, C/C++, CMake, Docker, Git, SQL, YAML,
