@@ -11,30 +11,26 @@ local function vscode_action(name)
   end
 end
 
--- Movement functions for VSCode
-local function move(d)
+-- VS Code owns wrapped-line geometry, so delegate gj/gk in both normal and
+-- visual mode instead of relying on Neovim's incomplete viewport model.
+local function move(d, select)
   return function()
-    -- Only works in charwise visual mode
-    if vim.api.nvim_get_mode().mode ~= "v" then
-      return "g" .. d
-    end
     vscode.action("cursorMove", {
       args = {
-        {
-          to = d == "j" and "down" or "up",
-          by = "wrappedLine",
-          value = vim.v.count1,
-          select = true,
-        },
+        to = d == "j" and "down" or "up",
+        by = "wrappedLine",
+        value = vim.v.count1,
+        select = select,
       },
     })
-    return "<Ignore>"
   end
 end
 
 -- Set up movement keymaps
-vim.keymap.set("v", "gj", move("j"), { expr = true, silent = true })
-vim.keymap.set("v", "gk", move("k"), { expr = true, silent = true })
+vim.keymap.set("n", "gj", move("j", false), { silent = true, desc = "Down one wrapped line" })
+vim.keymap.set("n", "gk", move("k", false), { silent = true, desc = "Up one wrapped line" })
+vim.keymap.set("v", "gj", move("j", true), { silent = true, desc = "Select down one wrapped line" })
+vim.keymap.set("v", "gk", move("k", true), { silent = true, desc = "Select up one wrapped line" })
 vim.keymap.set("n", "u", vscode_action("undo"), { silent = true, desc = "VS Code undo" })
 vim.keymap.set("n", "<C-r>", vscode_action("redo"), { silent = true, desc = "VS Code redo" })
 

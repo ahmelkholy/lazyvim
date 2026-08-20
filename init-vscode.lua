@@ -74,6 +74,8 @@ end
 -- These mappings are supplied by VSCode-Neovim and use its viewport/LSP bridge.
 -- Replacing them with a non-remapped native sequence breaks their VS Code effect.
 local vscode_native_overrides = {
+  ["gj"] = true,
+  ["gk"] = true,
   ["zt"] = true,
   ["zz"] = true,
   ["zb"] = true,
@@ -367,25 +369,23 @@ map("n", "<C-A-g>", action("lazygit-vscode.toggle"), { desc = "LazyGit" })
 map("n", "<S-h>", action("workbench.action.previousEditor"), { desc = "Previous editor" })
 map("n", "<S-l>", action("workbench.action.nextEditor"), { desc = "Next editor" })
 
--- Preserve selection while moving over wrapped display lines.
-local function move_wrapped(direction)
+-- This is intentionally the final gj/gk mapping in this file. The custom
+-- prefix menus must never turn display-line movement back into native j/k.
+local function move_wrapped(direction, select)
   return function()
-    if vim.api.nvim_get_mode().mode ~= "v" then
-      return "g" .. direction
+    local options = {
+      to = direction == "j" and "down" or "up",
+      by = "wrappedLine",
+      value = vim.v.count1,
+    }
+    if select then
+      options.select = true
     end
-    vscode.action("cursorMove", {
-      args = {
-        {
-          to = direction == "j" and "down" or "up",
-          by = "wrappedLine",
-          value = vim.v.count1,
-          select = true,
-        },
-      },
-    })
-    return "<Ignore>"
+    vscode.action("cursorMove", { args = options })
   end
 end
 
-map("v", "gj", move_wrapped("j"), { expr = true, silent = true })
-map("v", "gk", move_wrapped("k"), { expr = true, silent = true })
+map("n", "gj", move_wrapped("j", false), { silent = true, nowait = true, desc = "Next display line" })
+map("n", "gk", move_wrapped("k", false), { silent = true, nowait = true, desc = "Previous display line" })
+map("v", "gj", move_wrapped("j", true), { silent = true, nowait = true, desc = "Select next display line" })
+map("v", "gk", move_wrapped("k", true), { silent = true, nowait = true, desc = "Select previous display line" })

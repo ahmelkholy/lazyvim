@@ -28,8 +28,9 @@ macOS/Linux: ~/.config/nvim
 - Opens Explorer on a clean bare startup, then creates up to two editor panes
   only as real files are opened.
 - Gives every window its own filename/title bar and uses one global status line.
-- Uses JetBrainsMono Nerd Font Mono for graphical clients and the VS Code
-  workspace; terminal Neovim inherits the terminal application's font.
+- Uses JetBrainsMono Nerd Font Mono for graphical clients. Terminal Neovim
+  inherits the terminal application's font, while VS Code uses platform-safe
+  ordered fallbacks.
 - Maps `;` to `:` in normal mode.
 - Keeps `vim-visual-multi` for regular Neovim only.
 - Enables Treesitter for standalone Neovim.
@@ -97,6 +98,10 @@ Optional language/tool support:
 Standalone Neovim keeps its native editing, scrolling, undo, and window keys.
 Only non-conflicting VS Code-style shortcuts are added. VS Code continues to
 own its familiar shortcuts while VSCode-Neovim is active.
+
+Inside VSCode-Neovim, `gj` and `gk` are explicitly delegated to VS Code's
+wrapped-line cursor command in normal and visual mode. This preserves display
+line movement even though the custom `g` prefix menu is also enabled.
 
 | VS Code habit | Standalone Neovim action |
 | --- | --- |
