@@ -19,11 +19,10 @@ shortcut, mapped command, plugin module, external tool, and clipboard provider.
 | --- | --- | --- |
 | `Ctrl+P` Quick Open | `<leader><space>` | LazyVim file picker |
 | `Ctrl+R` Recent | `<leader>fr` | `Ctrl+R` remains native redo |
-| `Ctrl+Q` Close editor | `<leader>bd` | `Ctrl+Q` remains blockwise Visual mode |
+| `Ctrl+Q` Close editor | `<leader>wq` or `<leader>bd` | Closes only the file and selects the next one |
 | `Ctrl+W` Split right | `Ctrl+W v` or `<leader>\|` | `Ctrl+W` is Neovim's window prefix |
 | `Ctrl+J` Toggle panel | `<leader>ft` or `Ctrl+/` | `Ctrl+J` moves to the lower split |
 | `Ctrl+K` Save without format | `<leader>W` | `Ctrl+K` moves to the upper split |
-| `Ctrl+L` New AI chat | `<leader>aa` | `Ctrl+L` moves right/redraws |
 | `Ctrl+/` Comment | `gcc` or visual `gc` | LazyVim uses `Ctrl+/` for the terminal |
 | `Ctrl+D` Add cursor | `<leader>mc` | `Ctrl+D` scrolls half a page down |
 | `Ctrl+B` Run/build | `<leader>R…` | `Ctrl+B` scrolls a page backward |
@@ -51,6 +50,7 @@ Think of `Ctrl+W` as "window command", then press the action:
 | Split below | `Ctrl+W s` |
 | Move left/down/up/right | `Ctrl+H/J/K/L` |
 | Close current window | `Ctrl+W c` |
+| Close current window, safely | `<leader>wQ` |
 | Equalize sizes | `Ctrl+W =` |
 | Maximize/restore | `<leader>wm` |
 | Restore Explorer and file panes | `<leader>wL` or `:WorkspaceLayout` |
@@ -86,10 +86,11 @@ and `gT` move to the next and previous opened workspace.
 | Text search | `<leader>/` |
 | Open or focus Explorer | `Ctrl+Alt+D` |
 | Toggle/close Explorer | `<leader>e`, `Ctrl+Shift+E`, or `Alt+F` |
-| Next/previous tab in this pane | `Ctrl+Tab`, `Ctrl+Shift+Tab` |
+| Next/previous file in this pane | `Ctrl+Tab`, `Ctrl+Shift+Tab` or `L`, `H` |
 | Pane-tab menu | `<leader><Tab>` then `Tab`, `[`, `]`, `1`–`4`, `f`, `l`, `d`, or `o` |
-| Next/previous buffer | `Shift+L`, `Shift+H` |
-| Close current buffer | `<leader>bd` |
+| Alternative next/previous keys | `]b`, `[b` |
+| Close current file, keep pane | `<leader>wq` or `<leader>bd` |
+| Close current window/pane | `<leader>wQ` |
 | Search in current file | `/`, then type and press Enter |
 | Next/previous match | `n`, `N` |
 | Search word under cursor | `*`, `#` |

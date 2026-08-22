@@ -75,15 +75,4 @@ return {
       { "<C-A-z>", "<cmd>VimtexTocToggle<cr>", ft = "tex", desc = "LaTeX: outline" },
     },
   },
-  {
-    "zbirenbaum/copilot.lua",
-    opts = {
-      suggestion = {
-        keymap = {
-          accept_word = "<M-'>",
-          next = "<M-i>",
-        },
-      },
-    },
-  },
 }

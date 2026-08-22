@@ -113,7 +113,7 @@ line movement even though the custom `g` prefix menu is also enabled.
 | `Shift+Alt+2` | Split the current editor to the right |
 | `Ctrl+Shift+B`, `Alt+B` | Add/focus a second terminal beside the first; maximum two |
 | `Alt+T`, `Ctrl+Alt+B` | Show or hide the complete terminal group |
-| `Ctrl+Tab`, `Ctrl+Shift+Tab` | Next/previous tab in the current pane |
+| `Ctrl+Tab`, `Ctrl+Shift+Tab` or `L`, `H` | Next/previous file in the current pane |
 | `Ctrl+Shift+N` | Move the current editor to a new tab |
 | `Ctrl+Alt+W`, `Ctrl+Alt+E` | Move the split to the far left/right |
 | `Ctrl+Alt+T` | Toggle the current editor/panel zoom |
@@ -129,10 +129,7 @@ line movement even though the custom `g` prefix menu is also enabled.
 | `Ctrl+Alt+G` | Open source control in Lazygit |
 | `Ctrl+Alt+V` | Pick a changed Git file |
 | `Alt+,`, `Alt+.`, `Alt+R` | Previous/next/preview Git change |
-| `Alt+A`, `Ctrl+Alt+A`, `Ctrl+Alt+C` | Toggle Copilot Chat |
-| `Ctrl+Shift+I`, `Shift+Alt+A` | AI quick chat/prompt actions |
 | `Alt+G`, `Ctrl+Alt+O`, `Ctrl+Alt+X` | Gemini/OpenCode/Claude terminal |
-| `Alt+'`, `Alt+I` | Accept a Copilot word/request the next suggestion |
 | `Ctrl+Shift+G` | Search Markdown wiki links as a graph-like index |
 | `Ctrl+Shift+Left`, then `Delete` | Open today's project note under `notes/daily/` |
 | `Ctrl+Shift+Alt+R` | Toggle right-to-left display |
@@ -172,7 +169,8 @@ available actions.
 | Recent files | `<leader>fr` |
 | Workspaces | `<leader>fw` or `:Workspaces` |
 | Pane tabs | `<leader><Tab>` then `Tab`, `[`, `]`, `1`–`4`, `f`, `l`, `d`, or `o` |
-| Close buffer | `<leader>bd` |
+| Close current file, keep pane | `<leader>wq` or `<leader>bd` |
+| Close current window/pane | `<leader>wQ` |
 | Split right/below | `Ctrl+W v`, `Ctrl+W s` |
 | Move left/down/up/right | `Ctrl+H/J/K/L` |
 | Close/equalize windows | `Ctrl+W c`, `Ctrl+W =` |
@@ -181,7 +179,6 @@ available actions.
 | Scroll half-page down/up | `Ctrl+D`, `Ctrl+U` |
 | Comment line/selection | `gcc`, `gc` |
 | Terminal | `<leader>ft` or `Ctrl+/` |
-| AI chat | `<leader>aa` |
 | Multi-cursor | `<leader>mc` |
 | Run/build commands | `<leader>R…` |
 
