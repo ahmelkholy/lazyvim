@@ -142,8 +142,12 @@ local function safe_close_window()
   end
 end
 
-local function cycle_pane_files(direction)
-  require("config.workspace").cycle_tabs(direction)
+local function cycle_pane_files(direction, menu)
+  require("config.workspace").cycle_tabs(direction, { menu = menu })
+end
+
+local function cycle_all_files(direction)
+  require("config.workspace").cycle_all_files(direction)
 end
 
 local function close_current_file()
@@ -179,18 +183,12 @@ map("n", "<leader>wc", function()
   require("config.workspaces").close()
 end, { desc = "Workspace: close tab" })
 
-map("n", "<C-Tab>", function()
-  cycle_pane_files(1)
-end, { desc = "Next file in pane" })
-map("n", "<C-S-Tab>", function()
-  cycle_pane_files(-1)
-end, { desc = "Previous file in pane" })
 map("n", "L", function()
-  cycle_pane_files(1)
-end, { desc = "Next file in pane" })
+  cycle_all_files(1)
+end, { desc = "Cycle next file across all panes" })
 map("n", "H", function()
-  cycle_pane_files(-1)
-end, { desc = "Previous file in pane" })
+  cycle_all_files(-1)
+end, { desc = "Cycle previous file across all panes" })
 map("n", "]b", function()
   cycle_pane_files(1)
 end, { desc = "Next file in pane" })

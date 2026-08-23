@@ -13,8 +13,6 @@ local required_maps = {
     "<leader>wa",
     "<leader>wc",
     "<leader>wL",
-    "<C-Tab>",
-    "<C-S-Tab>",
     "H",
     "L",
     "[b",

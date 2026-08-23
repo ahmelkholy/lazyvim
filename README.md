@@ -113,7 +113,9 @@ line movement even though the custom `g` prefix menu is also enabled.
 | `Shift+Alt+2` | Split the current editor to the right |
 | `Ctrl+Shift+B`, `Alt+B` | Add/focus a second terminal beside the first; maximum two |
 | `Alt+T`, `Ctrl+Alt+B` | Show or hide the complete terminal group |
-| `Ctrl+Tab`, `Ctrl+Shift+Tab` or `L`, `H` | Next/previous file in the current pane |
+| `L`, `H` | Cycle files across every open pane/tab; the menu shows each file's window |
+| `Space`, `,` | Fuzzy switch to any open file without scanning the disk |
+| `Space`, `Space` | Find project files with ignored/generated directories excluded |
 | `Ctrl+Shift+N` | Move the current editor to a new tab |
 | `Ctrl+Alt+W`, `Ctrl+Alt+E` | Move the split to the far left/right |
 | `Ctrl+Alt+T` | Toggle the current editor/panel zoom |

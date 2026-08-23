@@ -11,6 +11,8 @@ local M = {
 
 ---@type table<number, number[]>
 local histories = {}
+local cycle_namespace = vim.api.nvim_create_namespace("workspace_file_cycle")
+local cycle_menu = { generation = 0 }
 
 local starter_filetypes = {
   alpha = true,
@@ -104,8 +106,8 @@ local function is_file_window(win)
   return is_editor_window(win) and not is_empty_editor_buffer(vim.api.nvim_win_get_buf(win))
 end
 
-local function editor_windows()
-  local windows = vim.tbl_filter(is_file_window, vim.api.nvim_tabpage_list_wins(0))
+local function editor_windows(tabpage)
+  local windows = vim.tbl_filter(is_file_window, vim.api.nvim_tabpage_list_wins(tabpage or 0))
   table.sort(windows, function(left, right)
     local left_position = vim.api.nvim_win_get_position(left)
     local right_position = vim.api.nvim_win_get_position(right)
@@ -269,6 +271,166 @@ local function remove_buffer_from_histories(buf)
   end
 end
 
+local function close_cycle_menu()
+  cycle_menu.generation = cycle_menu.generation + 1
+  if cycle_menu.win and vim.api.nvim_win_is_valid(cycle_menu.win) then
+    vim.api.nvim_win_close(cycle_menu.win, true)
+  end
+  if cycle_menu.buf and vim.api.nvim_buf_is_valid(cycle_menu.buf) then
+    vim.api.nvim_buf_delete(cycle_menu.buf, { force = true })
+  end
+  cycle_menu.win = nil
+  cycle_menu.buf = nil
+  cycle_menu.mode = nil
+  cycle_menu.entries = nil
+  cycle_menu.selected = nil
+end
+
+local function cycle_label(buf)
+  local name = vim.api.nvim_buf_get_name(buf)
+  if name == "" then
+    return "Untitled"
+  end
+  local parent = vim.fn.fnamemodify(name, ":h:t")
+  local basename = vim.fn.fnamemodify(name, ":t")
+  local modified = vim.api.nvim_get_option_value("modified", { buf = buf }) and "  ●" or ""
+  return (parent ~= "" and parent ~= "." and (parent .. "/") or "") .. basename .. modified
+end
+
+local function fit_cycle_label(value, width)
+  if vim.fn.strdisplaywidth(value) <= width then
+    return value
+  end
+  local room = math.max(1, width - 1)
+  local result = ""
+  for index = 0, vim.fn.strchars(value) - 1 do
+    local character = vim.fn.strcharpart(value, index, 1)
+    if vim.fn.strdisplaywidth(result .. character) > room then
+      break
+    end
+    result = result .. character
+  end
+  return result .. "…"
+end
+
+local function cycle_item_buffer(item)
+  return type(item) == "table" and item.buf or item
+end
+
+local function show_cycle_menu(owner, tabs, selected, opts)
+  opts = opts or {}
+  if not vim.api.nvim_win_is_valid(owner) then
+    return
+  end
+
+  local owner_width = opts.global and vim.o.columns or vim.api.nvim_win_get_width(owner)
+  local owner_height = opts.global and (vim.o.lines - vim.o.cmdheight) or vim.api.nvim_win_get_height(owner)
+  local width = math.min(opts.global and 88 or 60, math.max(1, owner_width - (opts.global and 4 or 2)))
+  local lines = {}
+  for index, item in ipairs(tabs) do
+    local marker = index == selected and "▸" or " "
+    local context = type(item) == "table" and item.context or nil
+    local prefix = string.format("%s %d", marker, index)
+    if context then
+      prefix = prefix .. "  [" .. context .. "]"
+    end
+    prefix = prefix .. "  "
+    local label =
+      fit_cycle_label(cycle_label(cycle_item_buffer(item)), math.max(1, width - vim.fn.strdisplaywidth(prefix)))
+    lines[index] = prefix .. label
+  end
+
+  local buf = cycle_menu.buf
+  if not buf or not vim.api.nvim_buf_is_valid(buf) then
+    buf = vim.api.nvim_create_buf(false, true)
+    cycle_menu.buf = buf
+    vim.bo[buf].bufhidden = "hide"
+    vim.bo[buf].buftype = "nofile"
+    vim.bo[buf].filetype = "file_cycle_menu"
+    vim.bo[buf].swapfile = false
+  end
+  vim.bo[buf].modifiable = true
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  vim.api.nvim_buf_clear_namespace(buf, cycle_namespace, 0, -1)
+  for index = 1, #lines do
+    vim.api.nvim_buf_set_extmark(buf, cycle_namespace, index - 1, 0, {
+      end_col = 0,
+      hl_eol = true,
+      line_hl_group = index == selected and "PmenuSel" or "Pmenu",
+      priority = 500,
+    })
+  end
+  vim.bo[buf].modifiable = false
+
+  local max_height = math.max(1, owner_height - (opts.global and 4 or 2))
+  if opts.global then
+    max_height = math.min(max_height, 16)
+  end
+  local height = math.min(#lines, max_height)
+  local config
+  if opts.global then
+    config = {
+      relative = "editor",
+      width = width,
+      height = height,
+      row = 1,
+      col = math.max(0, math.floor((vim.o.columns - width) / 2)),
+      style = "minimal",
+      border = "rounded",
+      focusable = false,
+      title = " All Open Files · Pane/Window ",
+      title_pos = "center",
+      zindex = 250,
+    }
+  else
+    config = {
+      relative = "win",
+      win = owner,
+      width = width,
+      height = height,
+      row = math.min(1, math.max(0, owner_height - height)),
+      col = math.max(0, math.floor((owner_width - width) / 2)),
+      style = "minimal",
+      border = "rounded",
+      focusable = false,
+      title = " Open Files ",
+      title_pos = "center",
+      zindex = 250,
+    }
+  end
+
+  if
+    cycle_menu.win
+    and vim.api.nvim_win_is_valid(cycle_menu.win)
+    and vim.api.nvim_win_get_tabpage(cycle_menu.win) ~= vim.api.nvim_get_current_tabpage()
+  then
+    vim.api.nvim_win_close(cycle_menu.win, true)
+    cycle_menu.win = nil
+  end
+  if cycle_menu.win and vim.api.nvim_win_is_valid(cycle_menu.win) then
+    vim.api.nvim_win_set_config(cycle_menu.win, config)
+  else
+    cycle_menu.win = vim.api.nvim_open_win(buf, false, config)
+    vim.wo[cycle_menu.win].winblend = 5
+    vim.wo[cycle_menu.win].winhighlight = "NormalFloat:Pmenu,FloatBorder:FloatBorder"
+  end
+  vim.wo[cycle_menu.win].wrap = false
+
+  pcall(vim.api.nvim_win_set_cursor, cycle_menu.win, { selected, 0 })
+  local topline = math.max(1, math.min(selected - math.floor(height / 2), #lines - height + 1))
+  pcall(vim.api.nvim_win_call, cycle_menu.win, function()
+    vim.fn.winrestview({ topline = topline, leftcol = 0 })
+  end)
+
+  cycle_menu.generation = cycle_menu.generation + 1
+  local generation = cycle_menu.generation
+  vim.defer_fn(function()
+    if cycle_menu.generation == generation then
+      close_cycle_menu()
+    end
+  end, 650)
+end
+
 local function arrange(callback)
   local previous = M._arranging
   M._arranging = true
@@ -338,7 +500,12 @@ function M.tabs(win)
 end
 
 function M.pane_role(win)
-  for index, editor in ipairs(editor_windows()) do
+  if not win or not vim.api.nvim_win_is_valid(win) then
+    return nil
+  end
+
+  local tabpage = vim.api.nvim_win_get_tabpage(win)
+  for index, editor in ipairs(editor_windows(tabpage)) do
     if editor == win then
       if index == 1 then
         return "L"
@@ -348,6 +515,152 @@ function M.pane_role(win)
       return tostring(index)
     end
   end
+end
+
+local function pane_cycle_label(index)
+  if index == 1 then
+    return "L"
+  elseif index == 2 then
+    return "R"
+  end
+  return "W" .. index
+end
+
+local function window_cycle_context(win)
+  if not win or not vim.api.nvim_win_is_valid(win) then
+    return "Open"
+  end
+
+  local tabpages = vim.api.nvim_list_tabpages()
+  local owner_tab = vim.api.nvim_win_get_tabpage(win)
+  for tab_index, tabpage in ipairs(tabpages) do
+    if tabpage == owner_tab then
+      for pane_index, editor in ipairs(editor_windows(tabpage)) do
+        if editor == win then
+          local pane = pane_cycle_label(pane_index)
+          return #tabpages > 1 and ("T%d:%s"):format(tab_index, pane) or pane
+        end
+      end
+    end
+  end
+  return "Open"
+end
+
+local function all_open_file_entries()
+  local entries = {}
+  local seen = {}
+  local tabpages = vim.api.nvim_list_tabpages()
+
+  for tab_index, tabpage in ipairs(tabpages) do
+    for pane_index, win in ipairs(editor_windows(tabpage)) do
+      local buffers = M.tabs(win)
+      local visible = vim.api.nvim_win_get_buf(win)
+      if valid_editor_buffer(visible) and not vim.tbl_contains(buffers, visible) then
+        buffers[#buffers + 1] = visible
+      end
+
+      local pane = pane_cycle_label(pane_index)
+      local context = #tabpages > 1 and ("T%d:%s"):format(tab_index, pane) or pane
+      for _, buf in ipairs(buffers) do
+        if valid_editor_buffer(buf) and not seen[buf] then
+          seen[buf] = true
+          entries[#entries + 1] = {
+            buf = buf,
+            win = win,
+            tabpage = tabpage,
+            context = context,
+          }
+        end
+      end
+    end
+  end
+
+  -- Modified files can remain listed after leaving a pane's four-file history.
+  -- Keep them reachable instead of silently omitting an open buffer.
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.bo[buf].buflisted and valid_editor_buffer(buf) and not seen[buf] then
+      seen[buf] = true
+      entries[#entries + 1] = { buf = buf, context = "Open" }
+    end
+  end
+
+  return entries
+end
+
+local function find_current_cycle_entry(entries)
+  local current_win = vim.api.nvim_get_current_win()
+  local current_buf = vim.api.nvim_get_current_buf()
+  local buffer_match
+  for index, entry in ipairs(entries) do
+    if entry.buf == current_buf then
+      if entry.win == current_win then
+        return index
+      end
+      buffer_match = buffer_match or index
+    end
+  end
+  return buffer_match
+end
+
+local function cycle_snapshot_is_current(entries, selected)
+  local entry = entries and entries[selected]
+  if not entry or entry.buf ~= vim.api.nvim_get_current_buf() then
+    return false
+  end
+  return not entry.win or entry.win == vim.api.nvim_get_current_win()
+end
+
+local function clean_cycle_snapshot(entries, selected)
+  local cleaned = {}
+  local cleaned_selected
+  for index, entry in ipairs(entries or {}) do
+    if valid_editor_buffer(entry.buf) then
+      cleaned[#cleaned + 1] = entry
+      if index == selected then
+        cleaned_selected = #cleaned
+      end
+    end
+  end
+  return cleaned, cleaned_selected
+end
+
+local function focus_cycle_entry(entry)
+  local win = entry.win
+  if not win or not vim.api.nvim_win_is_valid(win) or not is_editor_window(win) then
+    win = active_editor_window()
+    if not win then
+      for _, tabpage in ipairs(vim.api.nvim_list_tabpages()) do
+        win = editor_windows(tabpage)[1]
+        if win then
+          break
+        end
+      end
+    end
+  end
+  if not win then
+    return nil, "No editor pane is available"
+  end
+
+  local ok, err = pcall(function()
+    local tabpage = vim.api.nvim_win_get_tabpage(win)
+    if tabpage ~= vim.api.nvim_get_current_tabpage() then
+      vim.api.nvim_set_current_tabpage(tabpage)
+    end
+    vim.api.nvim_set_current_win(win)
+    vim.api.nvim_win_set_buf(win, entry.buf)
+  end)
+  if not ok then
+    return nil, err
+  end
+
+  entry.win = win
+  entry.tabpage = vim.api.nvim_win_get_tabpage(win)
+  entry.context = window_cycle_context(win)
+  local role = M.pane_role(win)
+  if role then
+    vim.t.workspace_last_editor_role = role
+  end
+  return win
 end
 
 function M.close_empty_panes()
@@ -577,7 +890,8 @@ function M.open_from_tree(state)
   M.open_file_in_next_pane(node.path or node:get_id(), state)
 end
 
-function M.cycle_tabs(direction)
+function M.cycle_tabs(direction, opts)
+  opts = opts or {}
   local win = active_editor_window()
   if not win then
     return
@@ -602,7 +916,48 @@ function M.cycle_tabs(direction)
   local ok, err = pcall(vim.api.nvim_win_set_buf, win, tabs[target])
   if not ok then
     vim.notify(err, vim.log.levels.ERROR, { title = "Pane tabs" })
+  elseif opts.menu then
+    show_cycle_menu(win, tabs, target)
   end
+end
+
+function M.cycle_all_files(direction)
+  direction = direction < 0 and -1 or 1
+
+  local entries, current
+  local reuse_snapshot = false
+  if cycle_menu.mode == "global" then
+    entries, current = clean_cycle_snapshot(cycle_menu.entries, cycle_menu.selected)
+    reuse_snapshot = cycle_snapshot_is_current(entries, current)
+  end
+  if not reuse_snapshot then
+    entries = all_open_file_entries()
+    current = find_current_cycle_entry(entries)
+  end
+  if #entries == 0 then
+    return false
+  end
+
+  if not current then
+    current = direction > 0 and 0 or 1
+  end
+  local target = #entries == 1 and 1 or ((current - 1 + direction) % #entries) + 1
+  local owner, err = focus_cycle_entry(entries[target])
+  if not owner then
+    vim.notify(err, vim.log.levels.ERROR, { title = "Open files" })
+    close_cycle_menu()
+    return false
+  end
+
+  -- Entering the target can evict and delete an old unmodified pane tab.
+  -- Remove it before rendering so a long carousel never references a stale
+  -- buffer or rebuilds itself in the middle of a key-repeat sequence.
+  entries, target = clean_cycle_snapshot(entries, target)
+  cycle_menu.mode = "global"
+  cycle_menu.entries = entries
+  cycle_menu.selected = target
+  show_cycle_menu(owner, entries, target, { global = true })
+  return true
 end
 
 function M.select_tab(index)

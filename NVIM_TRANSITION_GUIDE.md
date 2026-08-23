@@ -81,12 +81,13 @@ and `gT` move to the next and previous opened workspace.
 
 | Action | Key |
 | --- | --- |
-| Files | `<leader><space>` |
+| Project files (bounded fuzzy search) | `<leader><space>` |
+| Switch to any open file (instant) | `<leader>,` |
 | Recent files | `<leader>fr` |
 | Text search | `<leader>/` |
 | Open or focus Explorer | `Ctrl+Alt+D` |
 | Toggle/close Explorer | `<leader>e`, `Ctrl+Shift+E`, or `Alt+F` |
-| Next/previous file in this pane | `Ctrl+Tab`, `Ctrl+Shift+Tab` or `L`, `H` |
+| Next/previous file across every open pane/tab | Visual menu with `L`, `H` |
 | Pane-tab menu | `<leader><Tab>` then `Tab`, `[`, `]`, `1`–`4`, `f`, `l`, `d`, or `o` |
 | Alternative next/previous keys | `]b`, `[b` |
 | Close current file, keep pane | `<leader>wq` or `<leader>bd` |
@@ -99,9 +100,12 @@ Yanking with `y`, `yy`, or visual `y` also copies the text to the system
 clipboard, like `Ctrl+C` in VS Code. Deletes and changes keep Neovim's normal
 register behavior and do not overwrite that clipboard copy.
 
-Hidden, ignored, and dot files are visible in Neo-tree and included in file and
-grep pickers. Inside Neo-tree, `y` copies, `p` pastes, `d` cuts, `x` deletes,
-`r` renames, `n` creates a file, and `N` creates a directory.
+Hidden and dot files remain visible, while file and grep pickers respect ignore
+rules and skip dependency, cache, environment, and build directories. Inside
+Neo-tree, `y` copies, `p` pastes, `d` cuts, `x` deletes, `r` renames, `n`
+creates a file, and `N` creates a directory. On an SVG file, `Ctrl+B` opens a
+high-detail terminal preview; press `v` there when you need the true vector in
+the system viewer.
 
 Pressing Enter or double-clicking a file in an empty workspace creates pane `L`.
 The next file creates pane `R`; later selections open in the opposite pane, so
