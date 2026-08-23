@@ -5,6 +5,12 @@ return {
       require("config.markdown_tables").setup()
     end,
     opts = {
+      -- The cursor-row anti-conceal pass toggles decorations after every
+      -- movement. Insert mode already reveals Markdown source, so keeping the
+      -- normal-mode view stable makes j/k smooth in very large documents.
+      anti_conceal = {
+        enabled = false,
+      },
       -- Neovim cannot preserve a pipe table grid after its source rows wrap.
       -- A local renderer replaces tables with width-aware virtual rows instead.
       pipe_table = {

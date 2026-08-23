@@ -7,6 +7,8 @@ local table_cache = {}
 local layout_cache = {}
 local editing = {}
 local saved_scrolloff = {}
+local render_state = {}
+local mark_ids = {}
 
 local function restore_scrolloff(win)
   local state = saved_scrolloff[win]
@@ -180,30 +182,50 @@ local function tables(buf)
   return table_cache[buf]
 end
 
-local function table_at_line(buf, row)
-  for _, markdown_table in ipairs(tables(buf)) do
-    if row >= markdown_table.first and row <= markdown_table.last then
-      return markdown_table
+-- Tables are parsed in source order and cannot overlap. Binary searches keep
+-- cursor movement independent of the number of tables in a large document.
+local function first_table_ending_at_or_after(markdown_tables, row)
+  local low, high = 1, #markdown_tables + 1
+  while low < high do
+    local middle = math.floor((low + high) / 2)
+    if markdown_tables[middle].last < row then
+      low = middle + 1
+    else
+      high = middle
     end
+  end
+  return low
+end
+
+local function table_at_line(buf, row)
+  local markdown_tables = tables(buf)
+  local markdown_table = markdown_tables[first_table_ending_at_or_after(markdown_tables, row)]
+  if markdown_table and markdown_table.first <= row then
+    return markdown_table
   end
 end
 
 local function nearest_table(buf, row)
-  local nearest, nearest_distance
-  for _, markdown_table in ipairs(tables(buf)) do
-    local distance
-    if row < markdown_table.first then
-      distance = markdown_table.first - row
-    elseif row > markdown_table.last then
-      distance = row - markdown_table.last
-    else
-      return markdown_table
-    end
-    if not nearest_distance or distance < nearest_distance then
-      nearest, nearest_distance = markdown_table, distance
-    end
+  local markdown_tables = tables(buf)
+  local index = first_table_ending_at_or_after(markdown_tables, row)
+  local after = markdown_tables[index]
+  if after and after.first <= row then
+    return after
   end
-  return nearest
+  local before = markdown_tables[index - 1]
+  if not before then
+    return after
+  elseif not after then
+    return before
+  end
+  return row - before.last <= after.first - row and before or after
+end
+
+local function table_intersects(buf, first, last)
+  local markdown_tables = tables(buf)
+  local index = first_table_ending_at_or_after(markdown_tables, first)
+  local markdown_table = markdown_tables[index]
+  return markdown_table ~= nil and markdown_table.first <= last
 end
 
 local function text_width(value)
@@ -541,36 +563,47 @@ local function inactive_page(markdown_table, available, height, widths)
   return result
 end
 
-local function add_virtual_lines(buf, row, lines, above)
+local function add_virtual_lines(marks, row, lines, above)
   if #lines == 0 then
     return
   end
-  api.nvim_buf_set_extmark(buf, namespace, row, 0, {
-    virt_lines = lines,
-    virt_lines_above = above,
-    priority = 300,
-  })
+  marks[#marks + 1] = {
+    row = row,
+    opts = {
+      virt_lines = lines,
+      virt_lines_above = above,
+      priority = 300,
+    },
+  }
 end
 
-local function conceal_rows(buf, first, last)
+local function conceal_rows(buf, marks, first, last)
   if first > last then
     return
   end
   local line = api.nvim_buf_get_lines(buf, last - 1, last, false)[1] or ""
-  api.nvim_buf_set_extmark(buf, namespace, first - 1, 0, {
-    end_row = last - 1,
-    end_col = #line,
-    conceal_lines = "",
-    priority = 300,
-  })
+  marks[#marks + 1] = {
+    row = first - 1,
+    opts = {
+      end_row = last - 1,
+      end_col = #line,
+      conceal_lines = "",
+      priority = 300,
+    },
+  }
 end
 
-local function render_table(buf, markdown_table, width, height, active_row)
+local function render_table(buf, marks, markdown_table, width, height, active_row)
   local widths = cached_column_widths(buf, markdown_table, width)
   local display_row = math.max(0, markdown_table.first - 2)
   if not active_row or active_row < markdown_table.first or active_row > markdown_table.last then
-    add_virtual_lines(buf, display_row, inactive_page(markdown_table, width, height, widths), markdown_table.first == 1)
-    conceal_rows(buf, markdown_table.first, markdown_table.last)
+    add_virtual_lines(
+      marks,
+      display_row,
+      inactive_page(markdown_table, width, height, widths),
+      markdown_table.first == 1
+    )
+    conceal_rows(buf, marks, markdown_table.first, markdown_table.last)
     return
   end
 
@@ -579,10 +612,96 @@ local function render_table(buf, markdown_table, width, height, active_row)
   -- Anchor both sections to the visible cursor row so long tables cannot push
   -- Neovim's cursor onto an unrelated buffer line while redrawing.
   local before, after = active_page(markdown_table, width, height, active_row, widths)
-  add_virtual_lines(buf, active_row - 1, before, true)
-  add_virtual_lines(buf, active_row - 1, after, false)
-  conceal_rows(buf, markdown_table.first, active_row - 1)
-  conceal_rows(buf, active_row + 1, markdown_table.last)
+  add_virtual_lines(marks, active_row - 1, before, true)
+  add_virtual_lines(marks, active_row - 1, after, false)
+  conceal_rows(buf, marks, markdown_table.first, active_row - 1)
+  conceal_rows(buf, marks, active_row + 1, markdown_table.last)
+end
+
+local function clear_marks(buf)
+  api.nvim_buf_clear_namespace(buf, namespace, 0, -1)
+  mark_ids[buf] = nil
+end
+
+-- Reusing extmark ids avoids briefly removing every virtual line before it is
+-- recreated. That intermediate layout was especially noticeable as a snap
+-- while holding j or k in a long table.
+local function apply_marks(buf, marks)
+  local ids = mark_ids[buf] or {}
+  for index, mark in ipairs(marks) do
+    local opts = mark.opts
+    if ids[index] then
+      opts.id = ids[index]
+    end
+    ids[index] = api.nvim_buf_set_extmark(buf, namespace, mark.row, 0, opts)
+  end
+  for index = #ids, #marks + 1, -1 do
+    api.nvim_buf_del_extmark(buf, namespace, ids[index])
+    ids[index] = nil
+  end
+  mark_ids[buf] = ids
+end
+
+local function visible_range(buf)
+  local first, last, height
+  for _, win in ipairs(vim.fn.win_findbuf(buf)) do
+    if api.nvim_win_is_valid(win) then
+      local info = vim.fn.getwininfo(win)[1]
+      if info then
+        first = math.min(first or info.topline, info.topline)
+        last = math.max(last or info.botline, info.botline)
+      end
+      height = math.max(height or 0, api.nvim_win_get_height(win))
+    end
+  end
+
+  if not first then
+    local row = editing[buf] or 1
+    first, last, height = row, row, 24
+  elseif buf == api.nvim_get_current_buf() then
+    local row = api.nvim_win_get_cursor(0)[1]
+    first, last = math.min(first, row), math.max(last, row)
+  end
+  return first, last, math.max(8, height or 24)
+end
+
+local function nearby_range(buf)
+  local first, last, height = visible_range(buf)
+  local line_count = api.nvim_buf_line_count(buf)
+  -- Render several windows ahead so a table is ready before it scrolls into
+  -- view, but keep work bounded no matter how many tables the file contains.
+  local margin = height * 3
+  return math.max(1, first - margin), math.min(line_count, last + margin), first, last, height
+end
+
+local function needs_cursor_refresh(buf)
+  local state = render_state[buf]
+  if not state then
+    return true
+  end
+  local row = api.nvim_win_get_cursor(0)[1]
+  return row < state.safe_first or row > state.safe_last
+end
+
+local function needs_scroll_refresh(buf)
+  local state = render_state[buf]
+  if not state then
+    return true
+  end
+  local first, last = visible_range(buf)
+  return first < state.safe_first or last > state.safe_last
+end
+
+local function place_cursor(buf, row, column)
+  if buf ~= api.nvim_get_current_buf() then
+    return
+  end
+  local line = api.nvim_buf_get_lines(buf, row - 1, row, false)[1] or ""
+  local target = { row, math.min(column, #line) }
+  local current = api.nvim_win_get_cursor(0)
+  if current[1] ~= target[1] or current[2] ~= target[2] then
+    api.nvim_win_set_cursor(0, target)
+  end
 end
 
 function M.render(buf)
@@ -594,18 +713,40 @@ function M.render(buf)
   end
   update_scrolloff(buf)
   if vim.b[buf].responsive_markdown_tables_disabled then
-    api.nvim_buf_clear_namespace(buf, namespace, 0, -1)
+    clear_marks(buf)
+    render_state[buf] = nil
     return
   end
   if not editing[buf] and buf == api.nvim_get_current_buf() and api.nvim_get_mode().mode:match("^[iR]") then
     return
   end
 
-  api.nvim_buf_clear_namespace(buf, namespace, 0, -1)
+  local active_cursor
+  if editing[buf] and buf == api.nvim_get_current_buf() then
+    active_cursor = api.nvim_win_get_cursor(0)
+  end
   local width = available_width(buf)
   local height = available_height(buf)
-  for _, markdown_table in ipairs(tables(buf)) do
-    render_table(buf, markdown_table, width, height, editing[buf])
+  local first, last, visible_first, visible_last, viewport_height = nearby_range(buf)
+  local markdown_tables = tables(buf)
+  local index = first_table_ending_at_or_after(markdown_tables, first)
+  local marks = {}
+  while markdown_tables[index] and markdown_tables[index].first <= last do
+    render_table(buf, marks, markdown_tables[index], width, height, editing[buf])
+    index = index + 1
+  end
+  apply_marks(buf, marks)
+  render_state[buf] = {
+    first = first,
+    last = last,
+    safe_first = math.max(1, visible_first - viewport_height),
+    safe_last = math.min(api.nvim_buf_line_count(buf), visible_last + viewport_height),
+  }
+  -- Changing a conceal range can make Neovim temporarily relocate a cursor
+  -- that sat inside the old range. Put it back on the editable source row
+  -- after all marks have reached their final state.
+  if active_cursor and editing[buf] == active_cursor[1] then
+    place_cursor(buf, active_cursor[1], active_cursor[2])
   end
 end
 
@@ -664,6 +805,16 @@ function M.edit(buf)
   vim.schedule(vim.cmd.startinsert)
 end
 
+local function motion_crosses_table(delta)
+  local buf = api.nvim_get_current_buf()
+  if not is_markdown(buf) then
+    return false
+  end
+  local row = api.nvim_win_get_cursor(0)[1]
+  local target = math.max(1, math.min(api.nvim_buf_line_count(buf), row + (delta * vim.v.count1)))
+  return table_intersects(buf, math.min(row, target), math.max(row, target))
+end
+
 function M.move_row(delta)
   local buf = api.nvim_get_current_buf()
   if not is_markdown(buf) then
@@ -673,42 +824,51 @@ function M.move_row(delta)
   local cursor = api.nvim_win_get_cursor(0)
   local count = vim.v.count1
   local target = math.max(1, math.min(api.nvim_buf_line_count(buf), cursor[1] + (delta * count)))
-  local crosses_table = table_at_line(buf, cursor[1]) ~= nil
-  if not crosses_table then
-    for _, markdown_table in ipairs(tables(buf)) do
-      if
-        (delta > 0 and cursor[1] < markdown_table.first and target >= markdown_table.first)
-        or (delta < 0 and cursor[1] > markdown_table.last and target <= markdown_table.last)
-      then
-        crosses_table = true
-        break
-      end
-    end
-  end
+  local crosses_table = table_intersects(buf, math.min(cursor[1], target), math.max(cursor[1], target))
   if not crosses_table then
     return false
   end
 
   local line = api.nvim_buf_get_lines(buf, target - 1, target, false)[1] or ""
-  api.nvim_win_set_cursor(0, { target, math.min(cursor[2], #line) })
+  local target_column = math.min(cursor[2], #line)
+  api.nvim_win_set_cursor(0, { target, target_column })
   editing[buf] = table_at_line(buf, target) and target or nil
   M.render(buf)
+  -- Rendering at a boundary replaces a whole-table conceal range with two
+  -- ranges around the active row (or vice versa). Reasserting the destination
+  -- makes entry from either end deterministic even during rapid key repeats.
+  place_cursor(buf, target, target_column)
   return true
 end
 
 local function movement_mapping(buf, mode, key, delta, fallback)
+  local description = delta > 0 and "Next Markdown table row" or "Previous Markdown table row"
+  if mode == "n" then
+    local plug = delta > 0 and "<Plug>(ResponsiveMarkdownTableDown)" or "<Plug>(ResponsiveMarkdownTableUp)"
+    vim.keymap.set("n", plug, function()
+      M.move_row(delta)
+    end, { buffer = buf, desc = description })
+    vim.keymap.set("n", key, function()
+      -- Returning the native key from an expression mapping avoids adding a
+      -- second key to Neovim's input queue for every j/k outside a table.
+      return motion_crosses_table(delta) and plug or fallback
+    end, {
+      buffer = buf,
+      desc = description,
+      expr = true,
+      replace_keycodes = true,
+    })
+    return
+  end
+
   vim.keymap.set(mode, key, function()
     if M.move_row(delta) then
       return
     end
-    local keys = fallback
-    if mode == "n" and vim.v.count > 0 then
-      keys = tostring(vim.v.count) .. fallback
-    end
-    api.nvim_feedkeys(api.nvim_replace_termcodes(keys, true, false, true), "n", false)
+    api.nvim_feedkeys(api.nvim_replace_termcodes(fallback, true, false, true), "n", false)
   end, {
     buffer = buf,
-    desc = delta > 0 and "Next Markdown table row" or "Previous Markdown table row",
+    desc = description,
   })
 end
 
@@ -721,6 +881,7 @@ function M.setup()
     callback = function(args)
       table_cache[args.buf] = nil
       layout_cache[args.buf] = nil
+      render_state[args.buf] = nil
       schedule(args.buf)
       vim.keymap.set("n", "<leader>mt", function()
         M.edit(args.buf)
@@ -752,6 +913,7 @@ function M.setup()
       if is_markdown(args.buf) then
         table_cache[args.buf] = nil
         layout_cache[args.buf] = nil
+        render_state[args.buf] = nil
         if args.event == "InsertLeave" then
           sync_edit_state(args.buf)
           schedule(args.buf)
@@ -782,9 +944,23 @@ function M.setup()
     callback = function(args)
       if args.buf == api.nvim_get_current_buf() then
         sync_edit_state(args.buf)
+        if needs_cursor_refresh(args.buf) then
+          schedule(args.buf)
+        end
       end
     end,
     desc = "Reveal the Markdown table under the cursor for editing",
+  })
+
+  api.nvim_create_autocmd("WinScrolled", {
+    group = group,
+    callback = function()
+      local buf = api.nvim_get_current_buf()
+      if is_markdown(buf) and needs_scroll_refresh(buf) then
+        schedule(buf)
+      end
+    end,
+    desc = "Prepare responsive Markdown tables near the visible window",
   })
 
   api.nvim_create_autocmd("BufWipeout", {
@@ -793,6 +969,8 @@ function M.setup()
       pending[args.buf] = nil
       table_cache[args.buf] = nil
       layout_cache[args.buf] = nil
+      render_state[args.buf] = nil
+      mark_ids[args.buf] = nil
       editing[args.buf] = nil
       for win, state in pairs(saved_scrolloff) do
         if state.buf == args.buf then
