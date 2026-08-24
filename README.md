@@ -117,11 +117,11 @@ line movement even though the custom `g` prefix menu is also enabled.
 | `Shift+Alt+2` | Split the current editor to the right |
 | `Ctrl+Shift+B`, `Alt+B` | Add/focus a second terminal beside the first; maximum two |
 | `Alt+T`, `Ctrl+Alt+B` | Show or hide the complete terminal group |
-| `L`, `H` | Cycle files across every open pane/tab; the menu shows each file's window |
+| `Alt+L` (lowercase `l`) | Cycle files across every open pane/tab; the menu shows each file's window |
 | `Space`, `,` | Fuzzy switch to any open file without scanning the disk |
 | `Space`, `Space` | Find project files with ignored/generated directories excluded |
 | `Ctrl+Shift+N` | Move the current editor to a new tab |
-| `Ctrl+Alt+W`, `Ctrl+Alt+E` | Move the split to the far left/right |
+| `Ctrl+Alt+W`, `Ctrl+Alt+E` | Move the current file to the left/right editor pane |
 | `Ctrl+Alt+T` | Toggle the current editor/panel zoom |
 | `F11` | Toggle fullscreen-style Zen mode |
 | `Ctrl+Alt+F` | Toggle the right-side symbol outline |
@@ -165,6 +165,8 @@ loss. Directories still expand and collapse inside Explorer. Each editor pane
 shows up to four local tabs in its own title bar; opening a fifth removes that
 pane's oldest tab. A hidden, unmodified evicted buffer is closed automatically,
 while a modified or still-visible buffer is retained in Neovim.
+File movement never targets Explorer: `Ctrl+Alt+W` is a no-op in the left
+editor pane, and `Ctrl+Alt+E` is a no-op in the right editor pane.
 
 Markdownlint uses `.markdownlint-cli2.jsonc`, where `MD013` is disabled so
 long prose, links, and tables do not produce line-length diagnostics.

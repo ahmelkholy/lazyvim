@@ -942,6 +942,93 @@ function M.cycle_tabs(direction, opts)
   end
 end
 
+---Move the active file into the adjacent editor pane without moving windows.
+---Explorer and auxiliary windows are never considered destinations.
+---@param direction integer Negative moves left; positive moves right.
+---@return boolean
+function M.move_current_file(direction)
+  local source = vim.api.nvim_get_current_win()
+  if not is_file_window(source) then
+    vim.notify("Focus a file before moving it between editor panes", vim.log.levels.WARN, { title = "Move file" })
+    return false
+  end
+
+  local current = vim.api.nvim_win_get_buf(source)
+  if not valid_cycle_buffer(current) then
+    vim.notify("Only a named file can be moved between editor panes", vim.log.levels.WARN, { title = "Move file" })
+    return false
+  end
+
+  local editors = editor_windows()
+  local source_index = vim.fn.index(editors, source) + 1
+  local target = editors[source_index + (direction < 0 and -1 or 1)]
+  if not target then
+    return false
+  end
+
+  local target_visible = vim.api.nvim_win_get_buf(target)
+  if target_visible == current then
+    vim.api.nvim_set_current_win(target)
+    vim.t.workspace_last_editor_role = M.pane_role(target)
+    return true
+  end
+
+  local source_tabs = M.tabs(source)
+  if not vim.tbl_contains(source_tabs, current) then
+    source_tabs[#source_tabs + 1] = current
+  end
+  local target_tabs = M.tabs(target)
+  if valid_cycle_buffer(target_visible) and not vim.tbl_contains(target_tabs, target_visible) then
+    target_tabs[#target_tabs + 1] = target_visible
+  end
+
+  local current_index = vim.fn.index(source_tabs, current) + 1
+  local replacement = source_tabs[current_index + 1] or source_tabs[current_index - 1]
+  local swapping_visible_files = not replacement
+  replacement = replacement or target_visible
+
+  local source_history = vim.tbl_filter(function(buf)
+    return buf ~= current
+  end, source_tabs)
+  local target_history = vim.tbl_filter(function(buf)
+    return buf ~= current and (not swapping_visible_files or buf ~= target_visible)
+  end, target_tabs)
+
+  if valid_cycle_buffer(replacement) and not vim.tbl_contains(source_history, replacement) then
+    source_history[#source_history + 1] = replacement
+  end
+  target_history[#target_history + 1] = current
+
+  local evicted = {}
+  while #target_history > M.max_tabs do
+    evicted[#evicted + 1] = table.remove(target_history, 1)
+  end
+
+  local source_view = vim.api.nvim_win_call(source, vim.fn.winsaveview)
+  local moved = arrange(function()
+    vim.api.nvim_win_set_buf(source, replacement)
+    vim.api.nvim_set_current_win(target)
+    vim.api.nvim_win_set_buf(target, current)
+    vim.api.nvim_win_call(target, function()
+      vim.fn.winrestview(source_view)
+    end)
+    return true
+  end)
+  if not moved then
+    return false
+  end
+
+  histories[source] = source_history
+  histories[target] = target_history
+  for _, buf in ipairs(evicted) do
+    close_buffer_if_safe(buf, target)
+  end
+
+  vim.t.workspace_last_editor_role = M.pane_role(target)
+  M.schedule_explorer_width()
+  return true
+end
+
 function M.cycle_all_files(direction)
   direction = direction < 0 and -1 or 1
 
