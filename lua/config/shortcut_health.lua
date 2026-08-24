@@ -125,6 +125,7 @@ local required_commands = {
   "OverseerTaskAction",
   "OverseerToggle",
   "ShortcutHealth",
+  "SvgPreview",
   "Trouble",
   "WorkspaceAdd",
   "WorkspaceClose",

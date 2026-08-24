@@ -143,6 +143,11 @@ limit divides that same area side by side instead of stacking extra rows.
 second terminal, then cycles between both terminals. It is the reliable
 fallback when a terminal emulator sends `Ctrl+Shift+B` as plain `Ctrl+B`.
 
+On the remapped Mac keyboard, press physical Fn+Left Command+B for Windows
+Ctrl+Alt+B. Physical Fn+B remains Ctrl+B, including the context-sensitive SVG
+preview. Terminal.app must have “Use Option as Meta key” enabled; the Karabiner
+repository's `apply-macos-settings.sh` configures it for the default profile.
+
 Inside Neo-tree, the keys match the VS Code Explorer: `y` copies, `p` pastes,
 `d` cuts, `x` deletes, `r` renames, `n` creates a file, and `N` creates a
 folder. Hidden, dot, ignored, and platform-hidden files are visible. Fzf file

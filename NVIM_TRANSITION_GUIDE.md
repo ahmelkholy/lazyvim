@@ -33,6 +33,10 @@ shortcut, mapped command, plugin module, external tool, and clipboard provider.
 | `F12` Definition | `F12` or `gd` | Both are available |
 | `Shift+F12` References | `Shift+F12` or `gr` | Both are available |
 
+On the remapped Mac keyboard, Windows Ctrl+Alt+B is physical Fn+Left Command+B;
+physical Fn+B remains Ctrl+B for the SVG preview. Terminal.app must use Option
+as Meta so its logical Alt modifier reaches standalone Neovim.
+
 ## Windows and Panes
 
 On a bare `nvim` start, the config opens Explorer without a blank editor. The
