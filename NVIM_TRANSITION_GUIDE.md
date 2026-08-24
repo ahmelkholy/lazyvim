@@ -31,6 +31,7 @@ shortcut, mapped command, plugin module, external tool, and clipboard provider.
 | `Shift+Alt+F` Format | `Shift+Alt+F` or `<leader>cf` | Safe; this one is retained |
 | `Ctrl+.` Quick fix | `Ctrl+.` or `<leader>ca` | Safe; this one is retained |
 | `F12` Definition | `F12` or `gd` | Both are available |
+| Keyboard/mouse definition link | `Ctrl+Enter` or `Ctrl+LeftClick` | Resolves only on demand through the active language server |
 | `Shift+F12` References | `Shift+F12` or `gr` | Both are available |
 
 On the remapped Mac keyboard, Windows Ctrl+Alt+B is physical Fn+Left Command+B;
@@ -56,6 +57,7 @@ Think of `Ctrl+W` as "window command", then press the action:
 | Close current window | `Ctrl+W c` |
 | Close current window, safely | `<leader>wQ` |
 | Equalize sizes | `Ctrl+W =` |
+| Move current file left/right | `Ctrl+Alt+W`, `Ctrl+Alt+E` |
 | Maximize/restore | `<leader>wm` |
 | Restore Explorer and file panes | `<leader>wL` or `:WorkspaceLayout` |
 
@@ -66,12 +68,16 @@ The title above each pane is the ownership marker that VS Code normally provides
 with editor-group tabs. Each editor pane holds up to four local tabs. `▸` marks
 the selected tab, `+` marks unsaved changes, and the badge says `L` or `R`.
 Opening a fifth file removes that pane's oldest tab. Modified or visible buffers
-are kept safely loaded even when they leave the four-tab row.
+are kept safely loaded even when they leave the four-tab row. The visible file
+name in each pane uses an accent color, and pane ownership is restored lazily
+with the saved workspace session.
 
 ## Workspaces
 
-The top row lists opened workspaces as Neovim tab pages. Any folder containing
-`.git` is detected and saved automatically when you open one of its files. Use
+Opened workspaces remain Neovim tab pages, but they do not consume a full-width
+screen row. The current workspace name appears only above Explorer, while each
+editor's file tabs begin on the first row. Any folder containing `.git` is
+detected and saved automatically when you open one of its files. Use
 `<leader>fw` or `:Workspaces` for the VS Code-style workspace picker. Enter
 switches to an open workspace or opens a saved one, `Ctrl+T` opens another
 workspace tab, `Ctrl+A` saves the current directory, and `Ctrl+D` removes the
@@ -91,7 +97,7 @@ and `gT` move to the next and previous opened workspace.
 | Text search | `<leader>/` |
 | Open or focus Explorer | `Ctrl+Alt+D` |
 | Toggle/close Explorer | `<leader>e`, `Ctrl+Shift+E`, or `Alt+F` |
-| Next/previous file across every open pane/tab | Visual menu with `L`, `H` |
+| Cycle files across every open pane/tab | Repeated lowercase `Alt+l` |
 | Pane-tab menu | `<leader><Tab>` then `Tab`, `[`, `]`, `1`–`4`, `f`, `l`, `d`, or `o` |
 | Alternative next/previous keys | `]b`, `[b` |
 | Close current file, keep pane | `<leader>wq` or `<leader>bd` |
@@ -108,8 +114,14 @@ Hidden and dot files remain visible, while file and grep pickers respect ignore
 rules and skip dependency, cache, environment, and build directories. Inside
 Neo-tree, `y` copies, `p` pastes, `d` cuts, `x` deletes, `r` renames, `n`
 creates a file, and `N` creates a directory. On an SVG file, `Ctrl+B` opens a
-high-detail terminal preview; press `v` there when you need the true vector in
-the system viewer.
+high-resolution adaptive terminal preview rendered by Lua with a 2×4 Braille
+sample grid per cell; press `v` there when you need the true vector in the
+system viewer.
+
+Project pickers use Snacks' in-process Lua matcher, a cross-platform source
+capped at 20,000 candidates, bounded previews, and live grep capped at 2,000
+results. The former external `fzf` process is no longer used. `<leader>,` is the
+lightest file switcher because it searches only files already open in Neovim.
 
 Pressing Enter or double-clicking a file in an empty workspace creates pane `L`.
 The next file creates pane `R`; later selections open in the opposite pane, so

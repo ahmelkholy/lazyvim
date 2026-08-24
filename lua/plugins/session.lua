@@ -12,6 +12,32 @@ return {
       local persistence = require("persistence")
       persistence.setup(opts)
 
+      local pane_history_group = vim.api.nvim_create_augroup("persistent_pane_histories", { clear = true })
+      vim.api.nvim_create_autocmd("User", {
+        group = pane_history_group,
+        pattern = "PersistenceSavePre",
+        callback = function()
+          require("config.workspace").save_session_histories()
+        end,
+        desc = "Store pane-local files in the workspace session",
+      })
+      vim.api.nvim_create_autocmd("User", {
+        group = pane_history_group,
+        pattern = "PersistenceLoadPre",
+        callback = function()
+          vim.g.NvimWorkspacePaneHistoriesJson = nil
+        end,
+        desc = "Discard pane history before loading a session",
+      })
+      vim.api.nvim_create_autocmd("User", {
+        group = pane_history_group,
+        pattern = "PersistenceLoadPost",
+        callback = function()
+          require("config.workspace").restore_session_histories()
+        end,
+        desc = "Restore pane-local files from the workspace session",
+      })
+
       local function has_explicit_file_argument()
         for index = 0, vim.fn.argc(-1) - 1 do
           local argument = vim.fn.argv(index, -1)

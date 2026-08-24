@@ -193,20 +193,27 @@ function M.schedule_explorer_width()
 end
 
 local function valid_editor_buffer(buf)
-  return vim.api.nvim_buf_is_valid(buf)
-    and vim.api.nvim_get_option_value("buftype", { buf = buf }) == ""
-    and not is_empty_editor_buffer(buf)
+  if not vim.api.nvim_buf_is_valid(buf) or vim.api.nvim_get_option_value("buftype", { buf = buf }) ~= "" then
+    return false
+  end
+  if not vim.api.nvim_buf_is_loaded(buf) then
+    return vim.api.nvim_buf_get_name(buf) ~= ""
+  end
+  return not is_empty_editor_buffer(buf)
 end
 
--- Pane tabs and the Alt+l carousel contain only named, loaded file buffers.
--- Excluding anonymous scratch buffers and detached listed buffers keeps the
--- cycle deterministic and prevents unrelated files from appearing at random.
+-- Pane tabs and the Alt+l carousel contain only named, listed files that still
+-- exist. Session-restored hidden files may stay unloaded until selected.
 local function valid_cycle_buffer(buf)
-  if not valid_editor_buffer(buf) or not vim.api.nvim_buf_is_loaded(buf) or not vim.bo[buf].buflisted then
+  if not valid_editor_buffer(buf) or not vim.bo[buf].buflisted then
     return false
   end
   local name = vim.api.nvim_buf_get_name(buf)
-  return name ~= "" and not name:match("^%a[%w+.-]*://")
+  if name == "" or name:match("^%a[%w+.-]*://") then
+    return false
+  end
+  local stat = vim.uv.fs_stat(vim.fn.fnamemodify(name, ":p"))
+  return stat ~= nil and stat.type == "file"
 end
 
 local function clean_history(win)
@@ -545,6 +552,140 @@ function M.pane_role(win)
       return tostring(index)
     end
   end
+end
+
+local function tab_workspace_root(tabpage)
+  local ok, root = pcall(vim.api.nvim_tabpage_get_var, tabpage, "workspace_root")
+  root = ok and normalize_existing_directory(root) or nil
+  if root then
+    return root
+  end
+  local wins = vim.api.nvim_tabpage_list_wins(tabpage)
+  return wins[1] and normalize_existing_directory(vim.api.nvim_win_call(wins[1], vim.fn.getcwd))
+    or normalize_existing_directory(vim.fn.getcwd())
+end
+
+local function pane_session_entry(win)
+  local files = {}
+  local seen = {}
+  local function add(buf)
+    local path = real_file_path(buf)
+    if path and not seen[path] then
+      seen[path] = true
+      files[#files + 1] = path
+    end
+  end
+  for _, buf in ipairs(M.tabs(win)) do
+    add(buf)
+  end
+  local visible = vim.api.nvim_win_get_buf(win)
+  add(visible)
+  while #files > M.max_tabs do
+    table.remove(files, 1)
+  end
+  return {
+    current = real_file_path(visible),
+    files = files,
+  }
+end
+
+---Serialize pane ownership into a String global that :mksession can store.
+---@return boolean
+function M.save_session_histories()
+  local state = { version = 1, tabs = {} }
+  for _, tabpage in ipairs(vim.api.nvim_list_tabpages()) do
+    local panes = {}
+    for _, win in ipairs(editor_windows(tabpage)) do
+      local role = M.pane_role(win)
+      if role then
+        panes[role] = pane_session_entry(win)
+      end
+    end
+    state.tabs[#state.tabs + 1] = {
+      root = tab_workspace_root(tabpage),
+      panes = panes,
+    }
+  end
+
+  local ok, encoded = pcall(vim.json.encode, state)
+  if not ok then
+    vim.notify(encoded, vim.log.levels.WARN, { title = "Session pane history" })
+    return false
+  end
+  vim.g.NvimWorkspacePaneHistoriesJson = encoded
+  return true
+end
+
+local function matching_session_tab(saved_tabs, tabpage, index, used)
+  local root = tab_workspace_root(tabpage)
+  local direct = saved_tabs[index]
+  if direct and not used[index] and direct.root == root then
+    used[index] = true
+    return direct
+  end
+  for saved_index, entry in ipairs(saved_tabs) do
+    if not used[saved_index] and entry.root == root then
+      used[saved_index] = true
+      return entry
+    end
+  end
+end
+
+---Restore valid pane paths without eagerly loading their buffers.
+---@return boolean
+function M.restore_session_histories()
+  local encoded = vim.g.NvimWorkspacePaneHistoriesJson
+  if type(encoded) ~= "string" or encoded == "" then
+    return false
+  end
+  local ok, state = pcall(vim.json.decode, encoded)
+  if not ok or type(state) ~= "table" or state.version ~= 1 or type(state.tabs) ~= "table" then
+    return false
+  end
+
+  for win in pairs(histories) do
+    if not vim.api.nvim_win_is_valid(win) then
+      histories[win] = nil
+    end
+  end
+
+  local restored = 0
+  local used = {}
+  for index, tabpage in ipairs(vim.api.nvim_list_tabpages()) do
+    local saved = matching_session_tab(state.tabs, tabpage, index, used)
+    if saved and type(saved.panes) == "table" then
+      for _, win in ipairs(editor_windows(tabpage)) do
+        local pane = saved.panes[M.pane_role(win)]
+        if pane and type(pane.files) == "table" then
+          local history = {}
+          local seen = {}
+          for _, path in ipairs(pane.files) do
+            local stat = type(path) == "string" and vim.uv.fs_stat(path) or nil
+            if stat and stat.type == "file" then
+              local buf = vim.fn.bufadd(path)
+              if buf > 0 then
+                vim.bo[buf].buflisted = true
+              end
+              if buf > 0 and valid_cycle_buffer(buf) and not seen[buf] then
+                seen[buf] = true
+                history[#history + 1] = buf
+              end
+            end
+          end
+          local visible = vim.api.nvim_win_get_buf(win)
+          if valid_cycle_buffer(visible) and not seen[visible] then
+            history[#history + 1] = visible
+          end
+          while #history > M.max_tabs do
+            table.remove(history, 1)
+          end
+          histories[win] = history
+          restored = restored + #history
+        end
+      end
+    end
+  end
+  return restored > 0
 end
 
 local function pane_cycle_label(index)

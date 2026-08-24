@@ -1,6 +1,22 @@
 local LazyVim = require("lazyvim.util")
 local Workspace = require("config.workspace")
 
+local pane_highlight_group = vim.api.nvim_create_augroup("pane_tab_highlights", { clear = true })
+
+local function apply_pane_highlights()
+  local active = vim.api.nvim_get_hl(0, { name = "Identifier", link = false })
+  local inactive = vim.api.nvim_get_hl(0, { name = "Comment", link = false })
+  vim.api.nvim_set_hl(0, "PaneTabSelected", { fg = active.fg })
+  vim.api.nvim_set_hl(0, "PaneTabInactive", { fg = inactive.fg })
+end
+
+apply_pane_highlights()
+vim.api.nvim_create_autocmd("ColorScheme", {
+  group = pane_highlight_group,
+  callback = apply_pane_highlights,
+  desc = "Keep each pane's active filename visibly colored",
+})
+
 local function statusline_window()
   local win = tonumber(vim.g.statusline_winid)
   if win and vim.api.nvim_win_is_valid(win) then
@@ -11,6 +27,10 @@ end
 
 local function pane_number()
   local win = statusline_window()
+  local buf = vim.api.nvim_win_get_buf(win)
+  if vim.api.nvim_get_option_value("filetype", { buf = buf }) == "neo-tree" then
+    return "󰙅"
+  end
   return string.format("󰓩 %s", Workspace.pane_role(win) or vim.fn.win_id2win(win))
 end
 
@@ -48,10 +68,17 @@ local function pane_title()
   local filetype = vim.api.nvim_get_option_value("filetype", { buf = buf })
   local buftype = vim.api.nvim_get_option_value("buftype", { buf = buf })
 
-  local title = special_titles[filetype:gsub("-", "_")]
-  if buftype == "terminal" then
+  local title
+  if filetype == "neo-tree" then
+    local workspace = vim.t.workspace_name or vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
+    title = string.format("󰉋 %s", workspace)
+  elseif buftype == "terminal" then
     title = " Terminal"
-  elseif not title then
+  else
+    title = special_titles[filetype:gsub("-", "_")]
+  end
+
+  if not title then
     local name = vim.api.nvim_buf_get_name(buf)
     if name == "" then
       title = "󰈙 Untitled"
@@ -67,7 +94,9 @@ local function pane_title()
   if vim.api.nvim_get_option_value("modified", { buf = buf }) then
     title = title .. " ●"
   end
-  return title
+  -- Lualine evaluates custom text as a statusline expression; keep literal
+  -- percent signs in workspace and file names from becoming format tokens.
+  return title:gsub("%%", "%%%%")
 end
 
 local function compact_name(buf)
@@ -80,7 +109,7 @@ local function compact_name(buf)
   if vim.fn.strdisplaywidth(basename) > 16 then
     basename = vim.fn.strcharpart(basename, 0, 13) .. "…"
   end
-  return basename
+  return basename:gsub("%%", "%%%%")
 end
 
 local function pane_tabs()
@@ -92,13 +121,23 @@ local function pane_tabs()
   end
 
   local labels = {}
+  local reset = win == vim.api.nvim_get_current_win() and "WinBar" or "WinBarNC"
   for index, buf in ipairs(tabs) do
     local filetype = vim.api.nvim_get_option_value("filetype", { buf = buf })
     local name = vim.api.nvim_buf_get_name(buf)
     local marker = buf == current and "▸" or "·"
     local modified = vim.api.nvim_get_option_value("modified", { buf = buf }) and "+" or ""
-    labels[#labels + 1] =
-      string.format("%s%d %s %s%s", marker, index, file_icon(name, filetype), compact_name(buf), modified)
+    local highlight = buf == current and "PaneTabSelected" or "PaneTabInactive"
+    labels[#labels + 1] = string.format(
+      "%%#%s#%s%d %s %s%s%%#%s#",
+      highlight,
+      marker,
+      index,
+      file_icon(name, filetype),
+      compact_name(buf),
+      modified,
+      reset
+    )
   end
   return table.concat(labels, "  ")
 end

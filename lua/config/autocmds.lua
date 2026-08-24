@@ -9,6 +9,7 @@ end, { desc = "Open the personalized VS Code to Neovim transition guide" })
 
 require("config.workspace").setup()
 require("config.workspaces").setup()
+require("config.symbol_links").setup()
 
 vim.api.nvim_create_user_command("ShortcutHealth", function()
   require("config.shortcut_health").show()
@@ -24,6 +25,17 @@ vim.api.nvim_create_autocmd("TextYankPost", {
     end
   end,
   desc = "Mirror yanks to the system clipboard",
+})
+
+local writing_aids = vim.api.nvim_create_augroup("writing_aids", { clear = true })
+vim.api.nvim_create_autocmd("FileType", {
+  group = writing_aids,
+  pattern = { "gitcommit", "markdown", "markdown.mdx", "plaintex", "tex" },
+  callback = function()
+    vim.opt_local.spell = true
+    vim.opt_local.spelloptions:append("camel")
+  end,
+  desc = "Enable lightweight spelling only in prose-oriented files",
 })
 -- Keep all real code and document buffers inside the visible window. Plugins
 -- can create windows after the global options are applied, so reinforce these

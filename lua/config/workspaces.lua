@@ -192,7 +192,6 @@ function M.open(path, force_new_tab)
   end
   set_current_workspace(path)
   require("config.workspace").open()
-  vim.cmd.redrawtabline()
   return true
 end
 
@@ -215,68 +214,68 @@ function M.show()
     return
   end
 
-  local display_to_path = {}
-  local entries = {}
+  local items = {}
   for _, path in ipairs(projects) do
-    local entry = string.format("%-24s  %s", workspace_name(path), path)
-    display_to_path[entry] = path
-    entries[#entries + 1] = entry
+    items[#items + 1] = {
+      path = path,
+      text = string.format("%-24s  %s", workspace_name(path), path),
+    }
   end
 
-  local function selected_path(selected)
-    return selected and display_to_path[selected[1]] or nil
+  local function open_item(picker, item, new_tab)
+    local path = item and item.path
+    picker:close()
+    if path then
+      vim.schedule(function()
+        M.open(path, new_tab)
+      end)
+    end
   end
 
-  require("fzf-lua").fzf_exec(entries, {
-    prompt = "Workspaces> ",
-    winopts = { width = 0.78, height = 0.62 },
-    fzf_opts = {
-      ["--header"] = "ENTER open | CTRL-T new tab | CTRL-A save current | CTRL-D remove",
-    },
+  Snacks.picker.pick({
+    title = "Workspaces · Enter open · Ctrl-T new tab · Ctrl-A save · Ctrl-D remove",
+    items = items,
+    format = "text",
+    layout = { preset = "select" },
+    confirm = function(picker, item)
+      open_item(picker, item, false)
+    end,
     actions = {
-      ["default"] = {
-        function(selected)
-          M.open(selected_path(selected), false)
-        end,
-      },
-      ["ctrl-t"] = {
-        function(selected)
-          M.open(selected_path(selected), true)
-        end,
-      },
-      ["ctrl-a"] = function()
-        M.add(vim.fn.getcwd())
+      open_new_tab = function(picker, item)
+        open_item(picker, item, true)
+      end,
+      remove_workspace = function(picker, item)
+        local path = item and item.path
+        picker:close()
+        if path then
+          M.remove(path)
+        end
         vim.schedule(M.show)
       end,
-      ["ctrl-d"] = function(selected)
-        M.remove(selected_path(selected))
+      save_current = function(picker)
+        local cwd = vim.fn.getcwd()
+        picker:close()
+        M.add(cwd)
         vim.schedule(M.show)
       end,
+    },
+    win = {
+      input = {
+        keys = {
+          ["<c-a>"] = { "save_current", mode = { "n", "i" } },
+          ["<c-d>"] = { "remove_workspace", mode = { "n", "i" } },
+          ["<c-t>"] = { "open_new_tab", mode = { "n", "i" } },
+        },
+      },
+      list = {
+        keys = {
+          ["<c-a>"] = "save_current",
+          ["<c-d>"] = "remove_workspace",
+          ["<c-t>"] = "open_new_tab",
+        },
+      },
     },
   })
-end
-
-function M.tabline()
-  local current = vim.api.nvim_get_current_tabpage()
-  local parts = {}
-  for index, tab in ipairs(vim.api.nvim_list_tabpages()) do
-    local root = tab_root(tab)
-    local ok, name = pcall(vim.api.nvim_tabpage_get_var, tab, "workspace_name")
-    name = ok and name or workspace_name(root)
-    name = vim.fn.strcharpart(name:gsub("%%", "%%%%"), 0, 24)
-
-    local modified = false
-    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(tab)) do
-      if vim.api.nvim_get_option_value("modified", { buf = vim.api.nvim_win_get_buf(win) }) then
-        modified = true
-        break
-      end
-    end
-
-    local highlight = tab == current and "TabLineSel" or "TabLine"
-    parts[#parts + 1] = string.format("%%#%s#%%%dT 󰉋 %s%s %%T", highlight, index, name, modified and " +" or "")
-  end
-  return table.concat(parts) .. "%#TabLineFill#%T"
 end
 
 function M.setup()
@@ -309,20 +308,14 @@ function M.setup()
         if is_git_workspace(path) then
           remember(path)
         end
-        vim.cmd.redrawtabline()
       end
     end,
   })
-  vim.api.nvim_create_autocmd({ "TabEnter", "BufModifiedSet" }, {
-    group = group,
-    callback = function()
-      vim.cmd.redrawtabline()
-    end,
-  })
 
-  _G.NvimWorkspacesTabline = M.tabline
-  vim.opt.showtabline = 2
-  vim.opt.tabline = "%!v:lua.NvimWorkspacesTabline()"
+  -- Workspace names live in Explorer's per-window title. Keeping Neovim's
+  -- global tabline hidden lets editor pane tabs start at the first screen row.
+  vim.opt.showtabline = 0
+  vim.opt.tabline = ""
 end
 
 return M

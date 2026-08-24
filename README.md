@@ -17,7 +17,7 @@ macOS/Linux: ~/.config/nvim
 - Branch policy: `main` is the only configuration branch
 - Base: [LazyVim](https://www.lazyvim.org/)
 - Local Neovim path: `C:\Program Files\Neovim\bin\nvim.exe`
-- Default theme: Monokai
+- Default theme: Gruvbox
 - Default icon theme in VS Code: Material Icon Theme
 
 ## What This Config Does
@@ -39,8 +39,8 @@ macOS/Linux: ~/.config/nvim
 - Uses a lightweight `init-vscode.lua` backend in VS Code so the full standalone
   plugin stack cannot slow down or interfere with VS Code's UI.
 - Adds Windows, macOS, and Linux VS Code paths in the same settings file.
-- Shows opened workspaces in the top tab row and automatically remembers Git
-  roots.
+- Shows the current workspace above Explorer without consuming a full-width
+  row and automatically remembers Git roots.
 - Adds LazyVim extras for Python, Julia, C/C++, CMake, Docker, Git, SQL, YAML,
   TypeScript, DAP, projects, Aerial, Overseer, refactoring, tests, and Prettier.
 - Enables native GitHub Copilot inline completion in standalone Neovim. It uses
@@ -48,6 +48,8 @@ macOS/Linux: ~/.config/nvim
   VS Code's control.
 - Adds run shortcuts for Julia, Python, Make, C, and C++ files.
 - Adds R and LaTeX support and a conservative VS Code muscle-memory layer.
+- Keeps every configuration-owned runtime helper in Lua; there are no custom
+  shell or Python scripts.
 
 ## Installed Location
 
@@ -67,7 +69,6 @@ Recommended tools:
 - Git
 - ripgrep
 - fd
-- fzf
 - lazygit
 - Node.js and npm
 - a C/C++ compiler and `make`
@@ -77,14 +78,17 @@ Recommended tools:
 - JetBrainsMono Nerd Font or another Nerd Font
 - VSCode Neovim extension
 - VS Code Material Icon Theme installed and selected
-- Monokai selected as the default Neovim and VS Code theme
+- Gruvbox selected as the default Neovim theme
 - A GitHub account with Copilot access for AI inline completion
 
 Optional language/tool support:
 
+- Python is needed only for running Python programs, not for Neovim or SVG
+  previews.
 - R and `Rscript` for R execution, R.nvim, and the R language server
 - MATLAB for the MATLAB run and command-window shortcuts
 - Biber for LaTeX projects that use a Biber bibliography backend
+- `rsvg-convert`, ImageMagick, or Inkscape for in-terminal SVG previews
 
 ## Development Shortcuts
 
@@ -127,6 +131,7 @@ line movement even though the custom `g` prefix menu is also enabled.
 | `Ctrl+Alt+F` | Toggle the right-side symbol outline |
 | `Shift+Alt+F` | Format document or selection |
 | `F12`, `Shift+F12` | Definition/references |
+| `Ctrl+Enter`, `Ctrl+LeftClick` | Open the function or symbol definition under the cursor |
 | `Ctrl+.` | Code actions |
 | `Alt+Left`, `Alt+Right` | Navigate backward/forward |
 | `Alt+D` | Reveal the current file in the system file manager |
@@ -150,12 +155,23 @@ fallback when a terminal emulator sends `Ctrl+Shift+B` as plain `Ctrl+B`.
 On the remapped Mac keyboard, press physical Fn+Left Command+B for Windows
 Ctrl+Alt+B. Physical Fn+B remains Ctrl+B, including the context-sensitive SVG
 preview. Terminal.app must have “Use Option as Meta key” enabled; the Karabiner
-repository's `apply-macos-settings.sh` configures it for the default profile.
+profile can configure this once in Terminal settings.
 
 Inside Neo-tree, the keys match the VS Code Explorer: `y` copies, `p` pastes,
 `d` cuts, `x` deletes, `r` renames, `n` creates a file, and `N` creates a
-folder. Hidden, dot, ignored, and platform-hidden files are visible. Fzf file
-search and grep also include hidden and ignored working files.
+folder. Hidden, dot, ignored, and platform-hidden files are visible. File search
+and grep include hidden working files while respecting ignore rules.
+
+`Ctrl+B` on an SVG uses an adaptive Lua preview with a 2×4 Braille sample grid
+per terminal cell, giving twice the former vertical detail without Python. The
+preview grows with the terminal; `v` opens the original true vector externally.
+
+Project files use Snacks' in-process Lua matcher on Windows, macOS, and Linux;
+the external `fzf` process that caused the earlier memory failure is no longer
+used. Its portable `fd` source is capped at 20,000 candidates and skips
+dependency, cache, environment, coverage, and build directories. File previews
+are size-bounded, while live grep stops at 2,000 results. Open-buffer switching
+with `Space`, `,` never scans the filesystem.
 
 Explorer starts without a blank editor. The first selected file creates pane
 `L`, and the second creates pane `R`. Later selections rotate between them: from
@@ -167,6 +183,9 @@ pane's oldest tab. A hidden, unmodified evicted buffer is closed automatically,
 while a modified or still-visible buffer is retained in Neovim.
 File movement never targets Explorer: `Ctrl+Alt+W` is a no-op in the left
 editor pane, and `Ctrl+Alt+E` is a no-op in the right editor pane.
+When a pane owns multiple files, its displayed filename uses a subtle accent
+color and the hidden filenames remain muted. Pane-local file ownership is saved
+with the workspace session and restored lazily without loading hidden files.
 
 Markdownlint uses `.markdownlint-cli2.jsonc`, where `MD013` is disabled so
 long prose, links, and tables do not produce line-length diagnostics.
@@ -194,10 +213,16 @@ available actions.
 | Terminal | `<leader>ft` or `Ctrl+/` |
 | Multi-cursor | `<leader>mc` |
 | Run/build commands | `<leader>R…` |
+| Definition under cursor | `gd`, `F12`, or `Ctrl+Enter` |
 
 Run `:NvimTransition` inside Neovim for the personalized migration guide.
 Run `:ShortcutHealth` to verify leader mappings, custom shortcuts, commands,
 plugin modules, external tools, and clipboard support without changing files.
+For behavioral regression checks, run:
+
+```sh
+nvim --headless "+luafile scripts/nvim_regression.lua"
+```
 
 The automatic Explorer workspace is deliberately limited to a clean `nvim`
 start. It does not rearrange explicit file/directory opens, diffs, stdin, or
@@ -206,8 +231,9 @@ layout from Explorer-only to one and then two file panes. Bufferline is disabled
 because one shared buffer row makes split ownership unclear; each window instead
 owns a local four-tab row directly above it. `▸` marks the selected pane tab, `+`
 marks unsaved changes, and the `L`/`R` badge identifies the editor group. The
-top tab row shows opened workspaces; Git roots are added automatically, while
-`:WorkspaceAdd` saves a non-Git directory manually.
+workspace name appears only above Explorer, leaving each editor's file tabs on
+the first screen row. Git roots are added automatically, while `:WorkspaceAdd`
+saves a non-Git directory manually.
 
 Remote Explorer, Google Tasks, and Data Wrangler remain VS Code-only because
 there is no configured Neovim equivalent. HTML opens in the system browser
@@ -228,6 +254,9 @@ If needed, sync plugins manually:
 :Lazy sync
 ```
 
+Automatic background update polling is disabled. Run `:Lazy check` when you
+want to inspect available plugin updates.
+
 Then restart Neovim.
 
 Open a code file in standalone Neovim, then authorize GitHub Copilot once:
@@ -247,6 +276,12 @@ before starting Neovim, for example:
 export NVIM_COPILOT_PROXY="http://proxy-host:port"
 nvim .
 ```
+
+Copilot receives a portable 512 MiB Node heap ceiling and a two-thread libuv
+pool on Windows, macOS, and Linux. It is force-stopped when its Neovim session
+closes and is not started by headless maintenance or regression commands. These
+limits protect the system if the language server or proxy connection enters a
+retry loop.
 
 Run `:CopilotHealth` to confirm which route Copilot received. Copilot account
 or network messages are notifications rather than modal prompts, so they can no

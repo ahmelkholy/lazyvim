@@ -74,7 +74,12 @@ local function paste_terminal_clipboard()
 end
 
 local function markdown_links()
-  require("fzf-lua").live_grep({ search = [[\[\[]], prompt = "Markdown links> " })
+  Snacks.picker.grep({
+    cwd = workspace_root(),
+    live = false,
+    search = [[\[\[]],
+    title = "Markdown Links",
+  })
 end
 
 local function daily_note()
@@ -181,7 +186,9 @@ map({ "n", "t" }, "<C-S-f>", toggle_explorer, { desc = "Toggle activity/sidebar"
 map({ "n", "t" }, "<A-f>", toggle_explorer, { desc = "Explorer: show or hide" })
 map("n", "<F2>", reveal_explorer, { desc = "Explorer: reveal active file" })
 
-map("n", "<C-S-p>", "<cmd>FzfLua commands<cr>", { desc = "Command Palette" })
+map("n", "<C-S-p>", function()
+  Snacks.picker.commands()
+end, { desc = "Command Palette" })
 map("n", "<C-A-q>", LazyVim.pick("live_grep"), { desc = "Search: find in files" })
 map("n", "<leader>fw", function()
   require("config.workspaces").show()
@@ -307,7 +314,7 @@ end, { desc = "Source control" })
 map("n", "<C-A-v>", function()
   local root = git_root()
   if root then
-    require("fzf-lua").git_status({ cwd = root })
+    Snacks.picker.git_status({ cwd = root, limit = 2000 })
   else
     vim.notify("The current workspace is not a Git repository", vim.log.levels.WARN, { title = "Git" })
   end

@@ -4,6 +4,7 @@
 
 vim.g.lazyvim_python_lsp = "pyright"
 vim.g.lazyvim_python_ruff = "ruff"
+vim.opt.clipboard = "unnamedplus"
 
 -- Keep source code readable at every window width. These are display settings:
 -- they never insert line breaks or otherwise modify the file.
@@ -29,15 +30,19 @@ vim.opt.listchars = {
   nbsp = "␣",
 }
 
+-- Native histogram diffing produces stable, readable hunks for moved and
+-- heavily edited blocks without loading an additional diff plugin.
+vim.opt.diffopt:append("algorithm:histogram")
+
 -- Graphical Neovim clients can apply this directly. Terminal Neovim inherits
 -- its font from the terminal (the VS Code workspace uses the same Nerd Font).
 vim.opt.guifont = "JetBrainsMono Nerd Font Mono:h14"
 
 if not vim.g.vscode then
-  -- One global statusline plus one title bar per window is clearer than a
-  -- shared buffer strip when several editor panes are visible.
+  -- One global statusline plus a top title bar inside each window is clearer
+  -- than a shared full-width buffer/workspace strip.
   vim.opt.laststatus = 3
-  vim.opt.showtabline = 1
+  vim.opt.showtabline = 0
 
   if vim.fn.exists("+winborder") == 1 then
     vim.opt.winborder = "rounded"

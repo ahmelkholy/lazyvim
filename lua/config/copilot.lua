@@ -12,6 +12,10 @@ local proxy_variables = {
 
 local last_problem
 
+local function running_headless()
+  return vim.tbl_contains(vim.v.argv, "--headless")
+end
+
 local function trim(value)
   return value and value:match("^%s*(.-)%s*$") or nil
 end
@@ -41,6 +45,13 @@ local function strict_ssl()
   return not value or not vim.tbl_contains({ "0", "false", "no" }, value:lower())
 end
 
+local function bounded_node_options()
+  local options = trim(vim.env.NODE_OPTIONS) or ""
+  options = options:gsub("%-%-max%-old%-space%-size%s*=%s*%d+", "")
+  options = options:gsub("%-%-max%-old%-space%-size%s+%d+", "")
+  return trim(options .. " --max-old-space-size=512")
+end
+
 local function non_blocking_message(_, params)
   local message = trim(params and params.message) or "Copilot needs attention"
   last_problem = message
@@ -56,10 +67,21 @@ end
 
 function M.server_options()
   local options = {
+    -- Maintenance commands and regression checks must never launch a network
+    -- language server or leave one behind after their short-lived process.
+    enabled = not running_headless(),
     handlers = {
       ["window/showMessageRequest"] = non_blocking_message,
     },
+    -- Node understands these limits identically on Windows, macOS, and Linux.
+    -- The heap ceiling prevents a failed proxy/session loop from growing until
+    -- the operating system runs out of memory.
+    cmd_env = {
+      NODE_OPTIONS = bounded_node_options(),
+      UV_THREADPOOL_SIZE = "2",
+    },
   }
+
   local proxy = M.proxy()
   if not valid_proxy(proxy) then
     return options
@@ -73,12 +95,10 @@ function M.server_options()
   }
   -- The language server documents the LSP setting above. Mirroring it into
   -- its process environment also covers networking performed during startup.
-  options.cmd_env = {
-    HTTP_PROXY = proxy,
-    HTTPS_PROXY = proxy,
-    http_proxy = proxy,
-    https_proxy = proxy,
-  }
+  options.cmd_env.HTTP_PROXY = proxy
+  options.cmd_env.HTTPS_PROXY = proxy
+  options.cmd_env.http_proxy = proxy
+  options.cmd_env.https_proxy = proxy
   return options
 end
 
@@ -124,6 +144,16 @@ function M.setup()
   vim.api.nvim_create_user_command("CopilotHealth", M.show, {
     desc = "Show proxy-safe GitHub Copilot diagnostics",
     force = true,
+  })
+
+  vim.api.nvim_create_autocmd("VimLeavePre", {
+    group = vim.api.nvim_create_augroup("copilot_lifecycle", { clear = true }),
+    callback = function()
+      for _, client in ipairs(vim.lsp.get_clients({ name = "copilot" })) do
+        client:stop(true)
+      end
+    end,
+    desc = "Force-stop Copilot with its Neovim session",
   })
 end
 

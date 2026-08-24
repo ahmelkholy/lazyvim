@@ -103,11 +103,13 @@ local required_maps = {
 
 local required_modules = {
   "aerial",
+  "config.png",
+  "config.svg_preview",
+  "config.symbol_links",
   "config.workspace",
   "config.workspaces",
   "config.terminals",
   "dap",
-  "fzf-lua",
   "gitsigns",
   "neo-tree.command",
   "neotest",
@@ -117,7 +119,6 @@ local required_modules = {
 }
 
 local required_commands = {
-  "FzfLua",
   "CopilotHealth",
   "Lazy",
   "Mason",
@@ -144,6 +145,7 @@ local optional_executables = {
   "make",
   "matlab",
   "opencode",
+  vim.fn.has("win32") == 1 and "python" or "python3",
   "R",
 }
 
@@ -233,11 +235,14 @@ function M.check()
     end
   end
 
-  local python = vim.fn.has("win32") == 1 and "python" or "python3"
-  for _, executable in ipairs({ "fd", "fzf", "git", "lazygit", python, "rg" }) do
+  for _, executable in ipairs({ "fd", "git", "lazygit", "rg" }) do
     if vim.fn.executable(executable) == 0 then
       add(report.errors, "required executable is unavailable: " .. executable)
     end
+  end
+
+  if not require("config.svg_preview").renderer_command("", 8, 8) then
+    add(report.warnings, "SVG preview needs rsvg-convert, ImageMagick, or Inkscape")
   end
 
   local clipboard = vim.fn.has("clipboard") == 1

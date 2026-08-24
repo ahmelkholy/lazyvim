@@ -35,9 +35,10 @@ require("lazy").setup({
   },
   install = { colorscheme = { "tokyonight", "habamax" } },
   checker = {
-    enabled = true, -- check for plugin updates periodically
-    notify = false, -- notify on update
-  }, -- automatically check for plugin updates
+    -- Keep network/Git work explicit and predictable. Use :Lazy check when
+    -- updates are wanted instead of polling all plugins in the background.
+    enabled = false,
+  },
   -- No configured plugin needs LuaRocks. Disabling it avoids a broken
   -- hererocks bootstrap and removes unnecessary startup/health noise.
   rocks = { enabled = false },

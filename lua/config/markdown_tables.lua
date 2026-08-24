@@ -507,7 +507,7 @@ local function render_segment(markdown_table, available, source_row, widths)
   return result
 end
 
-local function cached_rendered_rows(buf, markdown_table, width, widths)
+local function cached_rendered_row(buf, markdown_table, width, widths, source_row)
   local changedtick = api.nvim_buf_get_changedtick(buf)
   local cache = segment_cache[buf]
   if not cache or cache.changedtick ~= changedtick or cache.width ~= width then
@@ -519,50 +519,53 @@ local function cached_rendered_rows(buf, markdown_table, width, widths)
   local rendered_rows = cache.tables[key]
   if not rendered_rows then
     rendered_rows = {}
-    local source_lines = api.nvim_buf_get_lines(buf, markdown_table.first - 1, markdown_table.last, false)
-    local signature = string.format("%d:%d:%d:%d", changedtick, width, markdown_table.first, markdown_table.last)
-    for source_row = markdown_table.first, markdown_table.last do
-      local segment = render_segment(markdown_table, width, source_row, widths)
-      local extra_lines = {}
-      for index = 2, #segment do
-        extra_lines[#extra_lines + 1] = segment[index]
-      end
-      local opts = {
-        end_row = source_row - 1,
-        end_col = #(source_lines[source_row - markdown_table.first + 1] or ""),
-        conceal = "",
-        virt_text = segment[1],
-        virt_text_pos = "overlay",
-        virt_text_hide = false,
-        priority = 300,
-      }
-      if #extra_lines > 0 then
-        opts.virt_lines = extra_lines
-      end
-      rendered_rows[source_row] = {
-        key = string.format("table-row:%d", source_row),
-        signature = signature,
-        row = source_row - 1,
-        segment = segment,
-        opts = opts,
-      }
-    end
     cache.tables[key] = rendered_rows
   end
-  return rendered_rows
+  if rendered_rows[source_row] then
+    return rendered_rows[source_row]
+  end
+
+  local source_line = api.nvim_buf_get_lines(buf, source_row - 1, source_row, false)[1] or ""
+  local signature = string.format("%d:%d:%d:%d", changedtick, width, markdown_table.first, markdown_table.last)
+  local segment = render_segment(markdown_table, width, source_row, widths)
+  local extra_lines = {}
+  for index = 2, #segment do
+    extra_lines[#extra_lines + 1] = segment[index]
+  end
+  local opts = {
+    end_row = source_row - 1,
+    end_col = #source_line,
+    conceal = "",
+    virt_text = segment[1],
+    virt_text_pos = "overlay",
+    virt_text_hide = false,
+    priority = 300,
+  }
+  if #extra_lines > 0 then
+    opts.virt_lines = extra_lines
+  end
+  rendered_rows[source_row] = {
+    key = string.format("table-row:%d", source_row),
+    signature = signature,
+    row = source_row - 1,
+    segment = segment,
+    opts = opts,
+  }
+  return rendered_rows[source_row]
 end
 
-local function render_table(buf, marks, markdown_table, width, active_row)
+local function render_table(buf, marks, markdown_table, width, active_row, first, last)
   local widths = cached_column_widths(buf, markdown_table, width)
-  local rendered_rows = cached_rendered_rows(buf, markdown_table, width, widths)
   local active = active_row and active_row >= markdown_table.first and active_row <= markdown_table.last and active_row
-  for source_row = markdown_table.first, markdown_table.last do
+  local render_first = math.max(markdown_table.first, first)
+  local render_last = math.min(markdown_table.last, last)
+  for source_row = render_first, render_last do
     if source_row ~= active then
-      marks[#marks + 1] = rendered_rows[source_row]
+      marks[#marks + 1] = cached_rendered_row(buf, markdown_table, width, widths, source_row)
     end
   end
-  if active then
-    local rendered = rendered_rows[active]
+  if active and active >= render_first and active <= render_last then
+    local rendered = cached_rendered_row(buf, markdown_table, width, widths, active)
     local frame
     local above = false
     if active == markdown_table.first then
@@ -708,7 +711,7 @@ function M.render(buf)
   local index = first_table_ending_at_or_after(markdown_tables, first)
   local marks = {}
   while markdown_tables[index] and markdown_tables[index].first <= last do
-    render_table(buf, marks, markdown_tables[index], width, active_row)
+    render_table(buf, marks, markdown_tables[index], width, active_row, first, last)
     index = index + 1
   end
   apply_marks(buf, marks)
@@ -900,9 +903,12 @@ function M.setup()
         if args.event == "InsertLeave" then
           sync_edit_state(args.buf)
           schedule(args.buf)
-        elseif not editing[args.buf] then
+        elseif args.event == "TextChanged" then
           schedule(args.buf)
         end
+        -- TextChangedI only invalidates the inexpensive caches. Reparse once
+        -- on InsertLeave instead of scanning a very long document after every
+        -- inserted character. Table arrow motions still call render directly.
       end
     end,
     desc = "Refresh responsive Markdown tables",

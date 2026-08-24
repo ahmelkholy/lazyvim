@@ -2,49 +2,37 @@ if vim.g.vscode then
   return {}
 end
 
-local file_excludes = table.concat({
-  "--exclude .git",
-  "--exclude .jj",
-  "--exclude node_modules",
-  "--exclude .venv",
-  "--exclude venv",
-  "--exclude __pycache__",
-  "--exclude .mypy_cache",
-  "--exclude .pytest_cache",
-  "--exclude .ruff_cache",
-  "--exclude .cache",
-  "--exclude target",
-  "--exclude dist",
-  "--exclude build",
-  "--exclude coverage",
-  "--exclude .next",
-}, " ")
+local file_excludes = {
+  ".git",
+  ".jj",
+  "node_modules",
+  ".venv",
+  "venv",
+  "__pycache__",
+  ".mypy_cache",
+  ".pytest_cache",
+  ".ruff_cache",
+  ".cache",
+  "target",
+  "dist",
+  "build",
+  "coverage",
+  ".next",
+}
 
-local rg_excludes = table.concat({
-  [[--glob '!.git/**']],
-  [[--glob '!.jj/**']],
-  [[--glob '!node_modules/**']],
-  [[--glob '!.venv/**']],
-  [[--glob '!venv/**']],
-  [[--glob '!__pycache__/**']],
-  [[--glob '!.cache/**']],
-  [[--glob '!target/**']],
-  [[--glob '!dist/**']],
-  [[--glob '!build/**']],
-  [[--glob '!coverage/**']],
-  [[--glob '!.next/**']],
-}, " ")
+local file_args = { "--threads", "2", "--max-results", "20000" }
 
 local function project_files()
   local root = require("config.workspace").root() or vim.fn.getcwd()
-  require("fzf-lua").vcs_files({ cwd = root })
+  Snacks.picker.files({ cwd = root })
 end
 
 local function open_files()
-  require("fzf-lua").buffers({
-    previewer = false,
+  Snacks.picker.buffers({
+    current = true,
+    layout = { preset = "select" },
     sort_lastused = true,
-    sort_mru = true,
+    unloaded = true,
   })
 end
 
@@ -54,6 +42,52 @@ return {
     init = function()
       require("config.svg_preview").setup()
     end,
+    opts = function(_, opts)
+      opts.picker = vim.tbl_deep_extend("force", opts.picker or {}, {
+        -- Snacks performs matching inside Neovim, so no fzf process can grow
+        -- independently. Both the producer and Lua finder stop at hard limits.
+        limit = 20000,
+        limit_live = 2000,
+        previewers = {
+          file = {
+            max_line_length = 500,
+            max_size = 2 * 1024 * 1024,
+          },
+        },
+        sources = {
+          buffers = {
+            sort_lastused = true,
+            unloaded = true,
+          },
+          files = {
+            args = file_args,
+            cmd = "fd",
+            exclude = file_excludes,
+            follow = false,
+            hidden = true,
+            ignored = false,
+            limit = 20000,
+          },
+          git_files = {
+            limit = 20000,
+            untracked = true,
+          },
+          grep = {
+            args = { "--max-filesize", "2M", "--max-count", "20" },
+            exclude = file_excludes,
+            follow = false,
+            hidden = true,
+            ignored = false,
+            limit_live = 2000,
+          },
+        },
+      })
+    end,
+    keys = {
+      { "<leader><space>", project_files, desc = "Find Project Files (safe Lua picker)" },
+      { "<leader>,", open_files, desc = "Switch Open File" },
+      { "<leader>fb", open_files, desc = "Switch Open File" },
+    },
   },
   {
     "nvim-neo-tree/neo-tree.nvim",
@@ -70,7 +104,10 @@ return {
           enabled = false,
           leave_dirs_open = true,
         },
-        use_libuv_file_watcher = true,
+        -- Neo-tree already refreshes after writes and its own file actions.
+        -- Avoid one persistent OS watcher per expanded directory in large
+        -- repositories; R remains available for an explicit external refresh.
+        use_libuv_file_watcher = false,
         filtered_items = {
           visible = true,
           hide_dotfiles = false,
@@ -113,60 +150,6 @@ return {
           end,
         },
       },
-    },
-  },
-  {
-    "ibhagwan/fzf-lua",
-    opts = {
-      winopts = {
-        preview = {
-          -- Avoid reading and highlighting every candidate while the cursor
-          -- is moving quickly through a large result set.
-          delay = 150,
-        },
-      },
-      previewers = {
-        builtin = {
-          -- Previewing huge or generated files can consume more memory than
-          -- the search itself. Keep useful previews, with strict limits.
-          limit_b = 2 * 1024 * 1024,
-          syntax_limit_b = 256 * 1024,
-          syntax_limit_l = 2000,
-        },
-      },
-      files = {
-        hidden = true,
-        no_ignore = false,
-        follow = false,
-        fd_opts = "--color=never --type f --type l --threads 2 --max-results 50000 " .. file_excludes,
-        rg_opts = "--color=never --files --hidden --threads 2 " .. rg_excludes,
-      },
-      grep = {
-        hidden = true,
-        no_ignore = false,
-        follow = false,
-        rg_opts = "--column --line-number --no-heading --color=always --smart-case "
-          .. "--max-columns=4096 --max-filesize=2M --max-count=200 --hidden --threads=2 "
-          .. rg_excludes
-          .. " -e",
-      },
-      buffers = {
-        previewer = false,
-        sort_lastused = true,
-        show_unloaded = true,
-      },
-      git = {
-        files = {
-          -- Includes tracked and useful untracked files, respects Git ignore
-          -- rules, and puts a hard ceiling on pathological repositories.
-          cmd = "git ls-files --cached --others --exclude-standard | head -n 50000",
-        },
-      },
-    },
-    keys = {
-      { "<leader><space>", project_files, desc = "Find Project Files (safe)" },
-      { "<leader>,", open_files, desc = "Switch Open File" },
-      { "<leader>fb", open_files, desc = "Switch Open File" },
     },
   },
   {
