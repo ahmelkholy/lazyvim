@@ -12,6 +12,7 @@ local M = {
 ---@type table<number, number[]>
 local histories = {}
 local cycle_namespace = vim.api.nvim_create_namespace("workspace_file_cycle")
+local cycle_key_namespace = vim.api.nvim_create_namespace("workspace_file_cycle_keys")
 local cycle_menu = { generation = 0 }
 
 local starter_filetypes = {
@@ -197,11 +198,22 @@ local function valid_editor_buffer(buf)
     and not is_empty_editor_buffer(buf)
 end
 
+-- Pane tabs and the Alt+l carousel contain only named, loaded file buffers.
+-- Excluding anonymous scratch buffers and detached listed buffers keeps the
+-- cycle deterministic and prevents unrelated files from appearing at random.
+local function valid_cycle_buffer(buf)
+  if not valid_editor_buffer(buf) or not vim.api.nvim_buf_is_loaded(buf) or not vim.bo[buf].buflisted then
+    return false
+  end
+  local name = vim.api.nvim_buf_get_name(buf)
+  return name ~= "" and not name:match("^%a[%w+.-]*://")
+end
+
 local function clean_history(win)
   local cleaned = {}
   local seen = {}
   for _, buf in ipairs(histories[win] or {}) do
-    if valid_editor_buffer(buf) and not seen[buf] then
+    if valid_cycle_buffer(buf) and not seen[buf] then
       seen[buf] = true
       cleaned[#cleaned + 1] = buf
     end
@@ -246,7 +258,7 @@ local function close_buffer_if_safe(buf, excluded_win)
 end
 
 local function record_buffer(win, buf)
-  if M._arranging or not is_editor_window(win) or not valid_editor_buffer(buf) then
+  if M._arranging or not is_editor_window(win) or not valid_cycle_buffer(buf) then
     return
   end
 
@@ -273,6 +285,7 @@ end
 
 local function close_cycle_menu()
   cycle_menu.generation = cycle_menu.generation + 1
+  vim.on_key(nil, cycle_key_namespace)
   if cycle_menu.win and vim.api.nvim_win_is_valid(cycle_menu.win) then
     vim.api.nvim_win_close(cycle_menu.win, true)
   end
@@ -424,6 +437,23 @@ local function show_cycle_menu(owner, tabs, selected, opts)
 
   cycle_menu.generation = cycle_menu.generation + 1
   local generation = cycle_menu.generation
+  if opts.global then
+    vim.on_key(function(_, typed)
+      if typed == "" then
+        return
+      end
+      local key = vim.fn.keytrans(typed)
+      if key == "<M-l>" then
+        return
+      end
+      vim.schedule(function()
+        if cycle_menu.generation == generation then
+          close_cycle_menu()
+        end
+      end)
+    end, cycle_key_namespace)
+    return
+  end
   vim.defer_fn(function()
     if cycle_menu.generation == generation then
       close_cycle_menu()
@@ -492,7 +522,7 @@ function M.tabs(win)
   local history = clean_history(win)
   if #history == 0 and is_editor_window(win) then
     local current = vim.api.nvim_win_get_buf(win)
-    if valid_editor_buffer(current) then
+    if valid_cycle_buffer(current) then
       return { current }
     end
   end
@@ -555,14 +585,14 @@ local function all_open_file_entries()
     for pane_index, win in ipairs(editor_windows(tabpage)) do
       local buffers = M.tabs(win)
       local visible = vim.api.nvim_win_get_buf(win)
-      if valid_editor_buffer(visible) and not vim.tbl_contains(buffers, visible) then
+      if valid_cycle_buffer(visible) and not vim.tbl_contains(buffers, visible) then
         buffers[#buffers + 1] = visible
       end
 
       local pane = pane_cycle_label(pane_index)
       local context = #tabpages > 1 and ("T%d:%s"):format(tab_index, pane) or pane
       for _, buf in ipairs(buffers) do
-        if valid_editor_buffer(buf) and not seen[buf] then
+        if valid_cycle_buffer(buf) and not seen[buf] then
           seen[buf] = true
           entries[#entries + 1] = {
             buf = buf,
@@ -572,15 +602,6 @@ local function all_open_file_entries()
           }
         end
       end
-    end
-  end
-
-  -- Modified files can remain listed after leaving a pane's four-file history.
-  -- Keep them reachable instead of silently omitting an open buffer.
-  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-    if vim.bo[buf].buflisted and valid_editor_buffer(buf) and not seen[buf] then
-      seen[buf] = true
-      entries[#entries + 1] = { buf = buf, context = "Open" }
     end
   end
 
@@ -614,7 +635,7 @@ local function clean_cycle_snapshot(entries, selected)
   local cleaned = {}
   local cleaned_selected
   for index, entry in ipairs(entries or {}) do
-    if valid_editor_buffer(entry.buf) then
+    if valid_cycle_buffer(entry.buf) then
       cleaned[#cleaned + 1] = entry
       if index == selected then
         cleaned_selected = #cleaned
