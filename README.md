@@ -43,6 +43,9 @@ macOS/Linux: ~/.config/nvim
   roots.
 - Adds LazyVim extras for Python, Julia, C/C++, CMake, Docker, Git, SQL, YAML,
   TypeScript, DAP, projects, Aerial, Overseer, refactoring, tests, and Prettier.
+- Enables native GitHub Copilot inline completion in standalone Neovim. It uses
+  Neovim 0.12's built-in completion support and keeps VS Code completion under
+  VS Code's control.
 - Adds run shortcuts for Julia, Python, Make, C, and C++ files.
 - Adds R and LaTeX support and a conservative VS Code muscle-memory layer.
 
@@ -75,6 +78,7 @@ Recommended tools:
 - VSCode Neovim extension
 - VS Code Material Icon Theme installed and selected
 - Monokai selected as the default Neovim and VS Code theme
+- A GitHub account with Copilot access for AI inline completion
 
 Optional language/tool support:
 
@@ -223,6 +227,15 @@ If needed, sync plugins manually:
 ```
 
 Then restart Neovim.
+
+Authorize GitHub Copilot once from standalone Neovim:
+
+```vim
+:LspCopilotSignIn
+```
+
+Follow the GitHub device-login prompt. The saved authorization is reused on
+later starts; press `Tab` to accept an inline suggestion.
 
 ## VS Code
 
