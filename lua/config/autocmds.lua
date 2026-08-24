@@ -31,9 +31,7 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 local visual_wrap = vim.api.nvim_create_augroup("visual_wrap", { clear = true })
 
 local function is_readable_buffer(buf)
-  return vim.api.nvim_buf_is_valid(buf)
-    and vim.bo[buf].buftype == ""
-    and vim.bo[buf].filetype ~= "snacks_picker_input"
+  return vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buftype == "" and vim.bo[buf].filetype ~= "snacks_picker_input"
 end
 
 local function apply_visual_wrap(win)
@@ -44,7 +42,16 @@ local function apply_visual_wrap(win)
   if not is_readable_buffer(buf) and not vim.wo[win].diff then
     return
   end
-  vim.wo[win].wrap = true
+  local table_wrap_owned = false
+  if vim.bo[buf].filetype:match("^markdown") then
+    local ok, markdown_tables = pcall(require, "config.markdown_tables")
+    if ok then
+      table_wrap_owned = markdown_tables.update_wrap(buf, win)
+    end
+  end
+  if not table_wrap_owned then
+    vim.wo[win].wrap = true
+  end
   vim.wo[win].linebreak = true
   -- Clear this locally as well as globally so restored sessions and plugin
   -- windows cannot retain an old continuation marker.

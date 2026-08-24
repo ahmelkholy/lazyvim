@@ -59,6 +59,7 @@ local required_maps = {
     "<A-Right>",
     "<C-A-g>",
     "<C-A-v>",
+    "<leader>gd",
     "<A-,>",
     "<A-.>",
     "<A-r>",
@@ -118,6 +119,7 @@ local required_modules = {
 
 local required_commands = {
   "FzfLua",
+  "CopilotHealth",
   "Lazy",
   "Mason",
   "Neotree",

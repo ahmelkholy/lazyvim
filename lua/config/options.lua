@@ -74,9 +74,37 @@ end
 vim.g.loaded_perl_provider = 0
 vim.g.loaded_ruby_provider = 0
 
--- SSH/tmux sessions have no DISPLAY even though the terminal supports OSC52.
+-- SSH terminals reliably support OSC52 writes, but many do not answer OSC52
+-- reads. Neovim's stock paste provider waits up to ten seconds for that reply,
+-- which can make `nvim .` look frozen. Keep system clipboard copies and cache
+-- our own yanks locally; use the terminal's normal paste shortcut for external
+-- clipboard text.
 if vim.env.SSH_TTY and not vim.env.DISPLAY and not vim.env.WAYLAND_DISPLAY then
-  vim.g.clipboard = "osc52"
+  local cache = {}
+  local function copy(reg)
+    local send = require("vim.ui.clipboard.osc52").copy(reg)
+    return function(lines, regtype)
+      cache[reg] = { vim.deepcopy(lines), regtype }
+      send(lines)
+    end
+  end
+  local function paste(reg)
+    return function()
+      return cache[reg] or { {}, "v" }
+    end
+  end
+  vim.g.clipboard = {
+    name = "OSC52 copy (non-blocking)",
+    copy = {
+      ["+"] = copy("+"),
+      ["*"] = copy("*"),
+    },
+    paste = {
+      ["+"] = paste("+"),
+      ["*"] = paste("*"),
+    },
+    cache_enabled = 0,
+  }
 end
 
 -- Linux/macOS: use the account's login shell for external commands.

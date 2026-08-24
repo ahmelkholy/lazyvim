@@ -237,6 +237,25 @@ Open a code file in standalone Neovim, then authorize GitHub Copilot once:
 Follow the GitHub device-login prompt. The saved authorization is reused on
 later starts; press `Tab` to accept an inline suggestion.
 
+Copilot automatically uses `NVIM_COPILOT_PROXY`, then the standard HTTPS/HTTP
+proxy variables. Keep credentials out of this repository and export the proxy
+before starting Neovim, for example:
+
+```bash
+export NVIM_COPILOT_PROXY="http://proxy-host:port"
+nvim .
+```
+
+Run `:CopilotHealth` to confirm which route Copilot received. Copilot account
+or network messages are notifications rather than modal prompts, so they can no
+longer block directory startup.
+
+On this SSH host, Neovim and VS Code Remote share the reachable client proxy at
+`192.168.137.1:10808`. VS Code Remote proxy support is set to `override` in its
+machine settings. If the client proxy address changes, update both
+`NVIM_COPILOT_PROXY` in `~/.zshenv` and `http.proxy` in
+`~/.vscode-server/data/Machine/settings.json`, then reload the VS Code window.
+
 ## VS Code
 
 Install the extension:

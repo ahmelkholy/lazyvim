@@ -108,7 +108,17 @@ local function gitsigns_action(action, ...)
 end
 
 local function git_root()
-  return vim.fs.root(workspace_root(), ".git")
+  local sources = { current_file_path(), workspace_root(), vim.fn.getcwd() }
+  for _, source in ipairs(sources) do
+    if source and source ~= "" then
+      local stat = vim.uv.fs_stat(source)
+      local start = stat and stat.type == "directory" and source or vim.fs.dirname(source)
+      local root = start and vim.fs.root(start, ".git") or nil
+      if root then
+        return root
+      end
+    end
+  end
 end
 
 local function new_named_file()

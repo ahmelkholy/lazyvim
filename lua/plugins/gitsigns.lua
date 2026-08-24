@@ -62,7 +62,6 @@ return {
           gs.blame_line({ full = true })
         end, "Blame Line")
         map("n", "<leader>gB", gs.blame, "Blame Buffer")
-        map("n", "<leader>gd", gs.diffthis, "Diff This")
         map("n", "<leader>gD", function()
           gs.diffthis("~")
         end, "Diff This (previous commit)")

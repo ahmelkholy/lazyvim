@@ -63,8 +63,7 @@ local project_set_pwd
 local get_recent_projects = function()
   return {}
 end
-local write_projects_to_history = function()
-end
+local write_projects_to_history = function() end
 local history_session_projects = {}
 local history_recent_projects = {}
 

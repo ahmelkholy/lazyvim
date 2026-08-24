@@ -25,10 +25,6 @@ return {
           default = vim.o.concealcursor,
           rendered = "nvc",
         },
-        wrap = {
-          default = true,
-          rendered = true,
-        },
         linebreak = {
           default = true,
           rendered = true,
