@@ -228,7 +228,7 @@ If needed, sync plugins manually:
 
 Then restart Neovim.
 
-Authorize GitHub Copilot once from standalone Neovim:
+Open a code file in standalone Neovim, then authorize GitHub Copilot once:
 
 ```vim
 :LspCopilotSignIn
