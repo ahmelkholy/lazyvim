@@ -46,6 +46,8 @@ macOS/Linux: ~/.config/nvim
 - Enables native GitHub Copilot inline completion in standalone Neovim. It uses
   Neovim 0.12's built-in completion support and keeps VS Code completion under
   VS Code's control.
+- Uses Tab to accept completion suggestions while Enter remains a normal
+  newline key.
 - Adds run shortcuts for Julia, Python, Make, C, and C++ files.
 - Adds R and LaTeX support and a conservative VS Code muscle-memory layer.
 - Keeps every configuration-owned runtime helper in Lua; there are no custom
