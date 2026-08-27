@@ -28,6 +28,8 @@ macOS/Linux: ~/.config/nvim
 - Opens Explorer on a clean bare startup, then creates up to two editor panes
   only as real files are opened.
 - Gives every window its own filename/title bar and uses one global status line.
+- Requests real fullscreen at startup from supported terminals and graphical
+  clients; Neovide also starts with zero padding on every edge.
 - Uses JetBrainsMono Nerd Font Mono for graphical clients. Terminal Neovim
   inherits the terminal application's font, while VS Code uses platform-safe
   ordered fallbacks.
@@ -129,7 +131,7 @@ line movement even though the custom `g` prefix menu is also enabled.
 | `Ctrl+Shift+N` | Move the current editor to a new tab |
 | `Ctrl+Alt+W`, `Ctrl+Alt+E` | Move the current file to the left/right editor pane |
 | `Ctrl+Alt+T` | Toggle the current editor/panel zoom |
-| `F11` | Toggle fullscreen-style Zen mode |
+| `F11` | Toggle real terminal/GUI fullscreen |
 | `Ctrl+Alt+F` | Toggle the right-side symbol outline |
 | `Shift+Alt+F` | Format document or selection |
 | `F12`, `Shift+F12` | Definition/references |

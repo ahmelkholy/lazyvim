@@ -39,6 +39,8 @@ vim.opt.diffopt:append("algorithm:histogram")
 vim.opt.guifont = "JetBrainsMono Nerd Font Mono:h14"
 
 if not vim.g.vscode then
+  require("config.fullscreen").setup()
+
   -- One global statusline plus a top title bar inside each window is clearer
   -- than a shared full-width buffer/workspace strip.
   vim.opt.laststatus = 3
