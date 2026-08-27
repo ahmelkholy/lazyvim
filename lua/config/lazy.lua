@@ -1,3 +1,7 @@
+-- Make Git and every plugin installer inherit the user's configured proxy
+-- before lazy.nvim is cloned, checked, or updated. TLS verification stays on.
+require("config.network").setup()
+
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
   local lazyrepo = "https://github.com/folke/lazy.nvim.git"

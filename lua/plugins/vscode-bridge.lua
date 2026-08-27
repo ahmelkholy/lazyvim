@@ -129,6 +129,7 @@ return {
           ["d"] = "cut_to_clipboard",
           ["x"] = "delete",
           ["r"] = "rename",
+          ["<F2>"] = "rename",
           ["n"] = "add",
           ["N"] = "add_directory",
           ["<C-b>"] = function(state)

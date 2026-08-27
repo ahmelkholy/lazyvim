@@ -5,6 +5,11 @@
 vim.g.lazyvim_python_lsp = "pyright"
 vim.g.lazyvim_python_ruff = "ruff"
 vim.opt.clipboard = "unnamedplus"
+vim.opt.autoread = true
+
+-- Normal/Visual/Operator Vim commands keep following the physical qwerty
+-- keys while the operating-system keyboard is Arabic or Russian.
+require("config.multilingual_keys").setup()
 
 -- Keep source code readable at every window width. These are display settings:
 -- they never insert line breaks or otherwise modify the file.
@@ -39,8 +44,6 @@ vim.opt.diffopt:append("algorithm:histogram")
 vim.opt.guifont = "JetBrainsMono Nerd Font Mono:h14"
 
 if not vim.g.vscode then
-  require("config.fullscreen").setup()
-
   -- One global statusline plus a top title bar inside each window is clearer
   -- than a shared full-width buffer/workspace strip.
   vim.opt.laststatus = 3
@@ -61,6 +64,12 @@ if not vim.g.vscode then
   })
 end
 
+-- Keep source and Markdown windows LTR; a bidi-aware terminal shapes and
+-- reorders only their Arabic runs so English identifiers remain readable.
+if not vim.g.vscode then
+  require("config.arabic").setup()
+end
+
 -- Mason-installed tools must also be available to health checks and plugins
 -- that execute before Mason itself is loaded.
 local mason_bin = vim.fn.stdpath("data") .. "/mason/bin"
@@ -75,9 +84,12 @@ local provider_python = vim.fn.stdpath("data")
   .. (vim.fn.has("win32") == 1 and "/provider-python/Scripts/python.exe" or "/provider-python/bin/python")
 if vim.fn.executable(provider_python) == 1 then
   vim.g.python3_host_prog = provider_python
+else
+  vim.g.loaded_python3_provider = 0
 end
 
 -- These optional remote providers are not used by this configuration.
+vim.g.loaded_node_provider = 0
 vim.g.loaded_perl_provider = 0
 vim.g.loaded_ruby_provider = 0
 

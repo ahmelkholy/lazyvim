@@ -179,6 +179,13 @@ local function table_at_line(buf, row)
   end
 end
 
+-- Arabic alignment uses this query to avoid shifting a rendered table row.
+-- Keep the remote renderer unchanged apart from this non-visual compatibility
+-- hook for the local multilingual functionality.
+function M.contains_line(buf, row)
+  return table_at_line(buf, row) ~= nil
+end
+
 local function nearest_table(buf, row)
   local markdown_tables = tables(buf)
   local index = first_table_ending_at_or_after(markdown_tables, row)

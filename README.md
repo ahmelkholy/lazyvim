@@ -28,8 +28,6 @@ macOS/Linux: ~/.config/nvim
 - Opens Explorer on a clean bare startup, then creates up to two editor panes
   only as real files are opened.
 - Gives every window its own filename/title bar and uses one global status line.
-- Requests real fullscreen at startup from supported terminals and graphical
-  clients; Neovide also starts with zero padding on every edge.
 - Uses JetBrainsMono Nerd Font Mono for graphical clients. Terminal Neovim
   inherits the terminal application's font, while VS Code uses platform-safe
   ordered fallbacks.
@@ -50,6 +48,12 @@ macOS/Linux: ~/.config/nvim
   VS Code's control.
 - Uses Tab to accept completion suggestions while Enter remains a normal
   newline key.
+- Adapts Arabic rendering to BiDi-capable terminals on macOS, Linux, and
+  Windows while keeping mixed Arabic/English source safe and pane-local.
+- Detects Arabic, Russian, and English input automatically from the active OS
+  layout and keeps physical Vim commands working outside Insert mode.
+- Renders Markdown tables inside the live pane width without resizing the page
+  or modifying their source.
 - Adds run shortcuts for Julia, Python, Make, C, and C++ files.
 - Adds R and LaTeX support and a conservative VS Code muscle-memory layer.
 - Keeps every configuration-owned runtime helper in Lua; there are no custom
@@ -105,6 +109,74 @@ Optional language/tool support:
 - `<leader>Rc`: build and run the current C file with GCC
 - `<leader>RC`: build and run the current C++ file with G++
 
+## Arabic, Russian, and Mixed-Direction Text
+
+The display mode is selected from terminal capabilities, not from the operating
+system. In a BiDi-capable terminal, Neovim keeps its grid and source code LTR
+while the terminal shapes and reorders Arabic runs. The first strong letter
+chooses each line's natural alignment: Arabic-first lines align right and
+English-first lines stay left. The alignment is display-only virtual padding,
+so it never changes the file, pane width, or saved UTF-8 text. Long lines
+soft-wrap inside a stable one-cell margin. This works for Arabic comments,
+Markdown, string literals, and output such as:
+
+```julia
+# ويستخدم promote بدل ما يعلن أن العالم كله Float64 وانتهى النقاش.
+println("النتيجة = ", value)
+```
+
+Here the Julia syntax remains LTR, Arabic reads RTL with connected letters, and
+`promote`, `Float64`, and `value` remain LTR. Responsive Markdown tables use the
+remote UI's connected box-drawing borders and stay within the live pane width.
+The original Markdown appears unchanged while editing and is the only content
+saved to disk.
+Use `<leader>mt` near a table (or `:MarkdownTableEdit`) to reveal and edit its
+source; leaving Insert mode restores the formatted reading view.
+
+| Terminal | Detection and behavior |
+| --- | --- |
+| macOS Terminal.app | BiDi is detected automatically |
+| Linux GNOME Terminal or another VTE 0.58+ frontend | BiDi is detected automatically |
+| Linux Konsole | Its default complex-text BiDi mode is detected automatically |
+| mlterm on macOS, Linux, or Windows | BiDi is detected automatically |
+| Windows Terminal, kitty, Alacritty, and unknown terminals | Safe native-shaping fallback; no false claim of mixed BiDi |
+
+Terminal Neovim inherits its font from the terminal. Use a monospaced font with
+Arabic forms on every machine; DejaVuSansM Nerd Font provides both Arabic and
+Neovim icons. A terminal cell grid cannot reproduce a browser's complete
+Obsidian-style paragraph layout by itself, so exact mixed BiDi requires a
+capable terminal such as those above. `:ArabicStatus` reports the detected mode.
+
+For a terminal with BiDi enabled but no detectable environment marker, opt in
+explicitly after verifying the terminal profile:
+
+```text
+macOS/Linux: NVIM_TUI_BIDI=1 nvim
+PowerShell:  $env:NVIM_TUI_BIDI = "1"; nvim
+cmd.exe:     set NVIM_TUI_BIDI=1 && nvim
+```
+
+- Input needs no Neovim command: change the normal OS keyboard layout and type.
+  Neovim detects Arabic, Russian, or English from inserted characters without
+  adding local UI elements to the remote status line.
+- `<leader>ua` or `Ctrl+Shift+Alt+R`: toggle mixed Arabic/English bidi display
+- `:Arabic` or `:ArabicAuto`: restore the recommended mixed mode
+- `:ArabicMixed`: explicitly keep code LTR and render Arabic runs with bidi
+- `:ArabicRTL`: use Neovim's window-wide native RTL only for a document that is
+  entirely Arabic
+- `:ArabicOff`: disable bidi
+- `:ArabicStatus`: show the active terminal and mode
+
+Neovim's built-in `rightleft` reverses a complete screen line and therefore is
+not used automatically for code or Markdown. Pane and table edges retain the
+remote UI's connected `│` box-drawing separator.
+
+Normal, Visual, Select, and Operator-pending Vim commands follow physical QWERTY
+keys automatically while the OS keyboard is Arabic or Russian. For example,
+Arabic `ا/ت/ن/م` and Russian `р/о/л/д` continue to act as `h/j/k/l`; counts also work
+with Arabic-Indic and Persian digits. Insert mode accepts the active OS layout
+directly, avoiding Neovim-specific switching and double translation on every OS.
+
 ## VS Code Muscle-Memory Bridge
 
 Standalone Neovim keeps its native editing, scrolling, undo, and window keys.
@@ -119,9 +191,12 @@ line movement even though the custom `g` prefix menu is also enabled.
 | --- | --- |
 | `Ctrl+Alt+D` | Open or focus Explorer; never close it |
 | `Ctrl+Shift+E`, `Alt+F` | Toggle Explorer when you intentionally want to close it |
-| `F2` | Reveal the current file in the Explorer |
+| `Space`, `e`, `r` | Reveal the current file in Explorer |
+| `F2` | Rename the symbol under the cursor; rename a file when Explorer is focused |
+| `Ctrl+P` | Quick Open project files |
 | `Ctrl+Shift+P` | Command Palette |
-| `Ctrl+Alt+Q` | Search in files |
+| `Ctrl+Shift+F`, `Ctrl+Alt+Q` | Search in files |
+| `Ctrl+Tab`, `Ctrl+Shift+Tab` | Next/previous open editor |
 | `Shift+Alt+2` | Split the current editor to the right |
 | `Ctrl+Shift+B`, `Alt+B` | Add/focus a second terminal beside the first; maximum two |
 | `Alt+T`, `Ctrl+Alt+B` | Show or hide the complete terminal group |
@@ -130,11 +205,13 @@ line movement even though the custom `g` prefix menu is also enabled.
 | `Space`, `Space` | Find project files with ignored/generated directories excluded |
 | `Ctrl+Shift+N` | Move the current editor to a new tab |
 | `Ctrl+Alt+W`, `Ctrl+Alt+E` | Move the current file to the left/right editor pane |
-| `Ctrl+Alt+T` | Toggle the current editor/panel zoom |
-| `F11` | Toggle real terminal/GUI fullscreen |
+| `Ctrl+Alt+T` | Toggle a maximized panel inside Neovim |
+| `F11` | Toggle Neovim's centered Zen view without resizing the terminal |
 | `Ctrl+Alt+F` | Toggle the right-side symbol outline |
 | `Shift+Alt+F` | Format document or selection |
+| `Alt+Up`, `Alt+Down` | Move the current line or selection |
 | `F12`, `Shift+F12` | Definition/references |
+| `F8`, `Shift+F8` | Next/previous problem |
 | `Ctrl+Enter`, `Ctrl+LeftClick` | Open the function or symbol definition under the cursor |
 | `Ctrl+.` | Code actions |
 | `Alt+Left`, `Alt+Right` | Navigate backward/forward |
@@ -147,7 +224,7 @@ line movement even though the custom `g` prefix menu is also enabled.
 | `Alt+G`, `Ctrl+Alt+O`, `Ctrl+Alt+X` | Gemini/OpenCode/Claude terminal |
 | `Ctrl+Shift+G` | Search Markdown wiki links as a graph-like index |
 | `Ctrl+Shift+Left`, then `Delete` | Open today's project note under `notes/daily/` |
-| `Ctrl+Shift+Alt+R` | Toggle right-to-left display |
+| `Ctrl+Shift+Alt+R` | Toggle mixed Arabic/English bidi |
 | `Shift+Alt+Q` | Confirm and close Neovim |
 
 The terminal group opens at twice the former panel height. Its two-terminal
@@ -176,6 +253,10 @@ used. Its portable `fd` source is capped at 20,000 candidates and skips
 dependency, cache, environment, coverage, and build directories. File previews
 are size-bounded, while live grep stops at 2,000 results. Open-buffer switching
 with `Space`, `,` never scans the filesystem.
+
+Files changed by Git, a formatter, or another editor reload automatically when
+Neovim regains focus, provided the local buffer has no unsaved edits. Modified
+buffers are preserved and receive Neovim's normal conflict warning.
 
 Explorer starts without a blank editor. The first selected file creates pane
 `L`, and the second creates pane `R`. Later selections rotate between them: from
@@ -260,6 +341,13 @@ If needed, sync plugins manually:
 
 Automatic background update polling is disabled. Run `:Lazy check` when you
 want to inspect available plugin updates.
+
+Git and plugin installers inherit the standard `HTTPS_PROXY`, `HTTP_PROXY`, or
+`ALL_PROXY` environment variables on every operating system. On macOS, Neovim
+also discovers the enabled System Settings proxy before lazy.nvim starts. Use
+`NVIM_NETWORK_PROXY` when an explicit per-Neovim override is needed. Certificate
+verification is never disabled. The `:Lazy` interface retains the remote
+configuration's centered dialog instead of taking over the complete grid.
 
 Then restart Neovim.
 

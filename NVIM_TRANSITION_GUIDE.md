@@ -17,7 +17,8 @@ shortcut, mapped command, plugin module, external tool, and clipboard provider.
 
 | Your VS Code instinct | Use in standalone Neovim | Why |
 | --- | --- | --- |
-| `Ctrl+P` Quick Open | `<leader><space>` | LazyVim file picker |
+| `Ctrl+P` Quick Open | `Ctrl+P` or `<leader><space>` | Bounded project file picker |
+| `Ctrl+Shift+F` Search | `Ctrl+Shift+F` or `Ctrl+Alt+Q` | Workspace-wide live grep |
 | `Ctrl+R` Recent | `<leader>fr` | `Ctrl+R` remains native redo |
 | `Ctrl+Q` Close editor | `<leader>wq` or `<leader>bd` | Closes only the file and selects the next one |
 | `Ctrl+W` Split right | `Ctrl+W v` or `<leader>\|` | `Ctrl+W` is Neovim's window prefix |
@@ -29,7 +30,10 @@ shortcut, mapped command, plugin module, external tool, and clipboard provider.
 | `Ctrl+Shift+B` New terminal | `Ctrl+Shift+B` or `Alt+B` | Adds and selects a second terminal beside the first; maximum two. `Alt+B` works inside terminals that cannot distinguish `Ctrl+Shift+B` from `Ctrl+B` |
 | `Ctrl+Alt+B` Terminal panel | `Ctrl+Alt+B` | Shows or hides the complete two-terminal group |
 | `Shift+Alt+F` Format | `Shift+Alt+F` or `<leader>cf` | Safe; this one is retained |
+| `Alt+Up/Down` Move line | `Alt+Up/Down` | Works for one line or a visual selection |
 | `Ctrl+.` Quick fix | `Ctrl+.` or `<leader>ca` | Safe; this one is retained |
+| `F2` Rename | `F2` or `<leader>cr` | Symbol rename in editors; file rename in Explorer |
+| `F8` Next problem | `F8` or `Shift+F8` | Next or previous diagnostic |
 | `F12` Definition | `F12` or `gd` | Both are available |
 | Keyboard/mouse definition link | `Ctrl+Enter` or `Ctrl+LeftClick` | Resolves only on demand through the active language server |
 | `Shift+F12` References | `Shift+F12` or `gr` | Both are available |
@@ -58,11 +62,14 @@ Think of `Ctrl+W` as "window command", then press the action:
 | Close current window, safely | `<leader>wQ` |
 | Equalize sizes | `Ctrl+W =` |
 | Move current file left/right | `Ctrl+Alt+W`, `Ctrl+Alt+E` |
-| Maximize/restore | `<leader>wm` |
+| Maximize/restore the current panel inside Neovim | `Ctrl+Alt+T` |
+| Toggle the centered Zen view without resizing the terminal | `F11` |
 | Restore Explorer and file panes | `<leader>wL` or `:WorkspaceLayout` |
 
 These navigation keys also cross tmux panes, so the same movement works inside
 and outside Neovim splits.
+
+The plugin manager retains the remote UI's centered 80% dialog.
 
 The title above each pane is the ownership marker that VS Code normally provides
 with editor-group tabs. Each editor pane holds up to four local tabs. `▸` marks
@@ -91,12 +98,14 @@ and `gT` move to the next and previous opened workspace.
 
 | Action | Key |
 | --- | --- |
-| Project files (bounded fuzzy search) | `<leader><space>` |
+| Project files (bounded fuzzy search) | `Ctrl+P` or `<leader><space>` |
 | Switch to any open file (instant) | `<leader>,` |
+| Next/previous open editor | `Ctrl+Tab`, `Ctrl+Shift+Tab` |
 | Recent files | `<leader>fr` |
-| Text search | `<leader>/` |
+| Text search across files | `Ctrl+Shift+F`, `Ctrl+Alt+Q`, or `<leader>/` |
 | Open or focus Explorer | `Ctrl+Alt+D` |
 | Toggle/close Explorer | `<leader>e`, `Ctrl+Shift+E`, or `Alt+F` |
+| Reveal current file in Explorer | `<leader>er` |
 | Cycle files across every open pane/tab | Repeated lowercase `Alt+l` |
 | Pane-tab menu | `<leader><Tab>` then `Tab`, `[`, `]`, `1`–`4`, `f`, `l`, `d`, or `o` |
 | Alternative next/previous keys | `]b`, `[b` |
@@ -141,8 +150,19 @@ of replacing an editor.
 | Repeat the last change | `.` |
 | Copy/delete/paste | `y`, `d`, `p` |
 | Comment line/selection | `gcc`, `gc` |
-| Rename symbol | `<leader>cr` |
+| Rename symbol | `F2` or `<leader>cr` |
 | Code action | `<leader>ca` |
+| Move line/selection | `Alt+Up`, `Alt+Down` |
+| Next/previous problem | `F8`, `Shift+F8` |
+
+Arabic, Russian, and English text input follows the operating-system keyboard
+layout automatically; there is no Neovim input-switch command. Outside Insert
+mode, Arabic and Russian layout characters continue to execute the physical
+QWERTY Vim keys.
+
+Markdown tables stay formatted and pane-bounded in the reading view. Press
+`<leader>mt` near one to edit its original Markdown source; leaving Insert mode
+restores the formatted table without changing the saved file.
 
 ## Running Code
 

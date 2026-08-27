@@ -27,6 +27,19 @@ vim.api.nvim_create_autocmd("TextYankPost", {
   desc = "Mirror yanks to the system clipboard",
 })
 
+-- Like VS Code, notice files changed by formatters, Git, or another editor as
+-- soon as Neovim regains focus. Unmodified buffers reload automatically;
+-- modified buffers retain their work and receive Neovim's normal warning.
+vim.api.nvim_create_autocmd({ "FocusGained", "TermClose", "TermLeave" }, {
+  group = vim.api.nvim_create_augroup("external_file_reload", { clear = true }),
+  callback = function()
+    if vim.fn.mode() ~= "c" then
+      pcall(vim.cmd, "checktime")
+    end
+  end,
+  desc = "Reload files changed outside Neovim",
+})
+
 local writing_aids = vim.api.nvim_create_augroup("writing_aids", { clear = true })
 vim.api.nvim_create_autocmd("FileType", {
   group = writing_aids,
