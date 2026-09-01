@@ -31,6 +31,78 @@ check("shortcut audit", function()
   assert(report.ok, table.concat(report.errors, "\n"))
 end)
 
+check("Space window navigation keeps native Neovim direction", function()
+  vim.cmd("silent! only!")
+  vim.cmd("silent! enew!")
+  vim.cmd("vsplit")
+  local right = api.nvim_get_current_win()
+  local left = vim.fn.win_getid(vim.fn.winnr("h"))
+  assert(left ~= right, "test split did not create distinct windows")
+
+  vim.fn.feedkeys(api.nvim_replace_termcodes("<leader>wh", true, false, true), "xt")
+  assert(api.nvim_get_current_win() == left, "Space w h did not focus the left window")
+  vim.fn.feedkeys(api.nvim_replace_termcodes("<leader>wl", true, false, true), "xt")
+  assert(api.nvim_get_current_win() == right, "Space w l did not focus the right window")
+  vim.cmd("silent! only!")
+end)
+
+check("shared key routes round-trip between Neovim and VS Code", function()
+  local key_sync = require("config.key_sync")
+  local original_manifest = key_sync.manifest_path
+  local original_keybindings = key_sync.keybindings_path
+  local temporary = vim.fn.tempname()
+  local temporary_manifest = vim.fs.joinpath(temporary, "shared-keybindings.json")
+  local temporary_keybindings = vim.fs.joinpath(temporary, "keybindings.json")
+
+  vim.fn.mkdir(temporary, "p")
+  vim.fn.writefile(vim.fn.readfile(original_manifest, "b"), temporary_manifest, "b")
+  vim.fn.writefile({
+    "[",
+    "  // BEGIN NVIM SHARED KEY ROUTES",
+    "  // END NVIM SHARED KEY ROUTES",
+    "]",
+  }, temporary_keybindings)
+
+  key_sync.manifest_path = temporary_manifest
+  key_sync.keybindings_path = temporary_keybindings
+  local ok, err = xpcall(function()
+    local pushed, push_err = key_sync.push()
+    assert(pushed, push_err)
+    local report = key_sync.health()
+    assert(report.ok and report.routes == 52, table.concat(report.errors, "\n"))
+
+    local raw = table.concat(vim.fn.readfile(temporary_keybindings), "\n")
+    local needle = [["key": "ctrl+shift+f"]]
+    local replacement = [["key": "ctrl+shift+g"]]
+    local first, last = raw:find(needle, 1, true)
+    assert(first, "generated Ctrl+Shift+F route is missing")
+    raw = raw:sub(1, first - 1) .. replacement .. raw:sub(last + 1)
+    vim.fn.writefile(vim.split(raw, "\n", { plain = true }), temporary_keybindings)
+
+    local pulled, pull_err = key_sync.pull()
+    assert(pulled, pull_err)
+    local decoded = vim.json.decode(table.concat(vim.fn.readfile(temporary_manifest), "\n"))
+    local route = decoded.routes[#decoded.routes]
+    assert(route.key == "ctrl+shift+g", "VS Code key edit did not reach the manifest")
+    assert(route.nvim == "<C-S-f>", "VS Code edit lost its standalone Neovim meaning")
+
+    route.key = "ctrl+shift+f"
+    vim.fn.writefile({ vim.json.encode(decoded) }, temporary_manifest)
+    local repushed, repush_err = key_sync.push()
+    assert(repushed, repush_err)
+    local updated = table.concat(vim.fn.readfile(temporary_keybindings), "\n")
+    assert(updated:find(needle, 1, true), "Neovim key edit did not return to VS Code")
+  end, debug.traceback)
+
+  key_sync.manifest_path = original_manifest
+  key_sync.keybindings_path = original_keybindings
+  key_sync.apply_aliases()
+  vim.uv.fs_unlink(temporary_manifest)
+  vim.uv.fs_unlink(temporary_keybindings)
+  vim.uv.fs_rmdir(temporary)
+  assert(ok, err)
+end)
+
 check("resource and native options", function()
   assert(vim.tbl_contains(vim.opt.diffopt:get(), "algorithm:histogram"))
   assert(vim.o.showtabline == 0)

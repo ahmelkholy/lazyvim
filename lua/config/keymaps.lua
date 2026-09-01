@@ -8,9 +8,9 @@ if vim.g.vscode then
   return
 end
 
--- A conservative VS Code bridge for standalone Neovim. Only keys that do not
--- replace core Neovim motions, undo, window, scrolling, or terminal controls
--- belong here.
+-- A conservative VS Code bridge for standalone Neovim. Only deliberate shared
+-- shortcuts plus keys that do not replace core motions, window, scrolling, or
+-- terminal controls belong here.
 local function workspace_root()
   return require("config.workspace").root() or vim.fn.getcwd()
 end
@@ -84,6 +84,10 @@ end
 
 local function project_files()
   Snacks.picker.files({ cwd = workspace_root() })
+end
+
+local function recent_files()
+  Snacks.picker.recent()
 end
 
 local function find_in_files()
@@ -190,7 +194,7 @@ end
 
 map({ "n", "t" }, "<C-A-d>", focus_explorer, { desc = "Explorer: open or focus" })
 map({ "n", "t" }, "<C-S-e>", toggle_explorer, { desc = "Explorer: show or hide" })
-map({ "n", "t" }, "<C-S-f>", find_in_files, { desc = "Search: find in files" })
+map({ "n", "t" }, "<C-S-f>", toggle_explorer, { desc = "Toggle activity bar / Explorer" })
 map({ "n", "t" }, "<A-f>", toggle_explorer, { desc = "Explorer: show or hide" })
 map("n", "<leader>er", reveal_explorer, { desc = "Explorer: reveal active file" })
 
@@ -198,6 +202,8 @@ map("n", "<C-S-p>", function()
   Snacks.picker.commands()
 end, { desc = "Command Palette" })
 map("n", "<C-p>", project_files, { desc = "Quick Open" })
+map("n", "<C-r>", recent_files, { desc = "Recent" })
+map("n", "<C-q>", close_current_file, { desc = "Close current file" })
 map("n", "<C-A-q>", find_in_files, { desc = "Search: find in files" })
 map("n", "<leader>fw", function()
   require("config.workspaces").show()
@@ -290,6 +296,17 @@ map("x", "<A-Down>", ":<C-u>silent! move '>+1<cr>gv=gv", { desc = "Move selectio
 map("x", "<A-Up>", ":<C-u>silent! move '<-2<cr>gv=gv", { desc = "Move selection up" })
 
 map("n", "<S-A-2>", "<C-w>v", { remap = true, desc = "Split editor right" })
+for key, direction in pairs({ h = "left", j = "down", k = "up", l = "right" }) do
+  map("n", "<leader>w" .. key, "<C-w>" .. key, {
+    remap = true,
+    desc = "Window: focus " .. direction,
+  })
+end
+map("n", "<leader>wv", "<C-w>v", { remap = true, desc = "Window: split right" })
+map("n", "<leader>ws", "<C-w>s", { remap = true, desc = "Window: split below" })
+map("n", "<leader>ww", "<C-w>w", { remap = true, desc = "Window: focus next" })
+map("n", "<leader>wW", "<C-w>W", { remap = true, desc = "Window: focus previous" })
+map("n", "<leader>w=", "<C-w>=", { remap = true, desc = "Window: equalize" })
 map("n", "<C-A-w>", function()
   require("config.workspace").move_current_file(-1)
 end, { desc = "Move file to left editor pane" })
@@ -299,6 +316,9 @@ end, { desc = "Move file to right editor pane" })
 map("n", "<C-A-t>", function()
   Snacks.zen.zoom()
 end, { desc = "Toggle maximized panel" })
+map("n", "<C-\\>", function()
+  Snacks.zen.zoom()
+end, { desc = "Toggle current file wide" })
 map("n", "<F11>", function()
   Snacks.zen()
 end, { desc = "Toggle fullscreen / Zen mode" })

@@ -36,8 +36,12 @@ macOS/Linux: ~/.config/nvim
 - Enables Treesitter for standalone Neovim.
 - Disables VS Code-conflicting UI and Treesitter plugins only when running inside
   the VSCode Neovim extension.
-- Uses a lightweight `init-vscode.lua` backend in VS Code so the full standalone
-  plugin stack cannot slow down or interfere with VS Code's UI.
+- Uses `init-vscode.lua` to enter the same LazyVim configuration in VS Code.
+  LazyVim's official VS Code extra keeps the editing-safe plugin subset active,
+  while native VS Code surfaces replace terminal-only UI plugins.
+- Builds the editor's Space menu from the effective Neovim mappings, so new or
+  buffer-local LazyVim actions appear in VS Code without maintaining a second
+  static menu tree.
 - Adds Windows, macOS, and Linux VS Code paths in the same settings file.
 - Shows the current workspace above Explorer without consuming a full-width
   row and automatically remembers Git roots.
@@ -179,9 +183,20 @@ directly, avoiding Neovim-specific switching and double translation on every OS.
 
 ## VS Code Muscle-Memory Bridge
 
-Standalone Neovim keeps its native editing, scrolling, undo, and window keys.
-Only non-conflicting VS Code-style shortcuts are added. VS Code continues to
-own its familiar shortcuts while VSCode-Neovim is active.
+Standalone Neovim and VSCode-Neovim share the same Normal, Visual, Select, and
+Operator-pending editing keys. VS Code-native file, search, debug, test, Git,
+terminal, pane, and settings surfaces are translated behind the corresponding
+LazyVim leader paths. Insert mode remains under VS Code's control so typing,
+completion, and platform clipboard shortcuts retain normal editor behavior.
+
+Pressing Space in an editor opens the live Which Key window immediately. Its
+tree is built from the effective global and buffer-local leader mappings,
+including groups and nested actions, so the following keys work like a Neovim
+leader sequence. Space in a non-writing VS Code list still opens the static
+native list menu. `Ctrl+Z` is a deliberate Normal-mode exception: VS Code
+handles undo because sending Neovim's suspend command would stop the embedded
+process. `u` also undoes, `Ctrl+R` opens Recent in both hosts, and `:redo`
+remains available in standalone Neovim.
 
 Inside VSCode-Neovim, `gj` and `gk` are explicitly delegated to VS Code's
 wrapped-line cursor command in normal and visual mode. This preserves display
@@ -194,8 +209,11 @@ line movement even though the custom `g` prefix menu is also enabled.
 | `Space`, `e`, `r` | Reveal the current file in Explorer |
 | `F2` | Rename the symbol under the cursor; rename a file when Explorer is focused |
 | `Ctrl+P` | Quick Open project files |
+| `Ctrl+Q` | Close the current file and keep its pane |
+| `Ctrl+R` | Open Recent files |
 | `Ctrl+Shift+P` | Command Palette |
-| `Ctrl+Shift+F`, `Ctrl+Alt+Q` | Search in files |
+| `Ctrl+Shift+F` | Toggle the Activity Bar in VS Code or Explorer in Neovim |
+| `Ctrl+Alt+Q` | Search in files |
 | `Ctrl+Tab`, `Ctrl+Shift+Tab` | Next/previous open editor |
 | `Shift+Alt+2` | Split the current editor to the right |
 | `Ctrl+Shift+B`, `Alt+B` | Add/focus a second terminal beside the first; maximum two |
@@ -205,8 +223,9 @@ line movement even though the custom `g` prefix menu is also enabled.
 | `Space`, `Space` | Find project files with ignored/generated directories excluded |
 | `Ctrl+Shift+N` | Move the current editor to a new tab |
 | `Ctrl+Alt+W`, `Ctrl+Alt+E` | Move the current file to the left/right editor pane |
+| `Ctrl+\` | Toggle the current file/pane wide, then restore it |
 | `Ctrl+Alt+T` | Toggle a maximized panel inside Neovim |
-| `F11` | Toggle Neovim's centered Zen view without resizing the terminal |
+| `F11` | Toggle the active host's Zen view |
 | `Ctrl+Alt+F` | Toggle the right-side symbol outline |
 | `Shift+Alt+F` | Format document or selection |
 | `Alt+Up`, `Alt+Down` | Move the current line or selection |
@@ -226,6 +245,16 @@ line movement even though the custom `g` prefix menu is also enabled.
 | `Ctrl+Shift+Left`, then `Delete` | Open today's project note under `notes/daily/` |
 | `Ctrl+Shift+Alt+R` | Toggle mixed Arabic/English bidi |
 | `Shift+Alt+Q` | Confirm and close Neovim |
+
+Shared physical shortcuts have one bidirectional route manifest:
+`shared-keybindings.json`. Its generated counterpart is the marked `NVIM
+SHARED KEY ROUTES` block in VS Code's `keybindings.json`. While Neovim is
+running, changing either side updates the other; on startup, the newer side
+wins. Keep each `NVIM SHARED` metadata comment with its VS Code binding so its
+standalone Neovim meaning travels with it. Use `:SharedKeysHealth`,
+`:SharedKeysSync`, `:SharedKeysPush`, or `:SharedKeysPull` to audit or reconcile
+the routes explicitly. The Space menu needs no duplicate manifest: it is built
+directly from the effective Neovim mappings and buffer-local menus.
 
 The terminal group opens at twice the former panel height. Its two-terminal
 limit divides that same area side by side instead of stacking extra rows.
@@ -283,16 +312,18 @@ available actions.
 | Habit or operation | Stable Neovim/LazyVim key |
 | --- | --- |
 | Quick Open | `<leader><space>` |
-| Recent files | `<leader>fr` |
+| Recent files | `Ctrl+R` or `<leader>fr` |
 | Workspaces | `<leader>fw` or `:Workspaces` |
 | Pane tabs | `<leader><Tab>` then `Tab`, `[`, `]`, `1`–`4`, `f`, `l`, `d`, or `o` |
-| Close current file, keep pane | `<leader>wq` or `<leader>bd` |
+| Close current file, keep pane | `Ctrl+Q`, `<leader>wq`, or `<leader>bd` |
 | Close current window/pane | `<leader>wQ` |
 | Split right/below | `Ctrl+W v`, `Ctrl+W s` |
-| Move left/down/up/right | `Ctrl+H/J/K/L` |
+| Move left/down/up/right | `Ctrl+H/J/K/L` or `<leader>wh/wj/wk/wl` |
+| Space window menu | `<leader>w`, then `h/j/k/l`, `s`, `v`, `w` (next), `W` (previous), or `=` |
 | Close/equalize windows | `Ctrl+W c`, `Ctrl+W =` |
+| Toggle current file/pane wide | `Ctrl+\` |
 | Restore Explorer + file-backed panes | `<leader>wL` or `:WorkspaceLayout` |
-| Undo/redo | `u`, `Ctrl+R` |
+| Undo/redo | `u`, `:redo` |
 | Scroll half-page down/up | `Ctrl+D`, `Ctrl+U` |
 | Comment line/selection | `gcc`, `gc` |
 | Terminal | `<leader>ft` or `Ctrl+/` |
@@ -393,7 +424,7 @@ Install the extension:
 code --install-extension asvetliakov.vscode-neovim
 ```
 
-The workspace and user settings point VS Code at the lightweight backend:
+The workspace and user settings point VS Code at the shared-config entrypoint:
 
 ```text
 C:\Program Files\Neovim\bin\nvim.exe
@@ -402,6 +433,11 @@ C:\Users\ahm_e\AppData\Local\nvim\init-vscode.lua
 
 If `code` is not available, install the extension from the VS Code Extensions
 view and reload the window.
+
+Inside VSCode-Neovim, run `:VscodeParityHealth` to audit the generated Space
+menu, every leader mapping, and the native discovery prefixes. If Space reports
+that `whichkey.show` is missing, install `vspacecode.whichkey` and reload the VS
+Code window.
 
 ## Updating
 

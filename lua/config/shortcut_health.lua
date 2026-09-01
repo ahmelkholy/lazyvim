@@ -11,12 +11,24 @@ local required_maps = {
     "<F8>",
     "<S-F8>",
     "<C-p>",
+    "<C-q>",
+    "<C-r>",
+    "<C-\\>",
     "<C-S-p>",
     "<C-A-q>",
     "<leader>fw",
     "<leader>wa",
     "<leader>wc",
     "<leader>wL",
+    "<leader>wh",
+    "<leader>wj",
+    "<leader>wk",
+    "<leader>wl",
+    "<leader>ws",
+    "<leader>wv",
+    "<leader>ww",
+    "<leader>wW",
+    "<leader>w=",
     "<M-l>",
     "<C-Tab>",
     "<C-S-Tab>",
@@ -93,6 +105,15 @@ local required_maps = {
     "<A-Down>",
     "<C-.>",
     "<leader>mc",
+    "<leader>cF",
+    "<leader>de",
+    "<leader>rF",
+    "<leader>rf",
+    "<leader>ri",
+    "<leader>rp",
+    "<leader>rs",
+    "<leader>rx",
+    "<leader>sr",
   },
   t = {
     "<C-A-d>",
@@ -114,6 +135,7 @@ local required_maps = {
 local required_modules = {
   "aerial",
   "config.png",
+  "config.key_sync",
   "config.svg_preview",
   "config.symbol_links",
   "config.workspace",
@@ -137,6 +159,10 @@ local required_commands = {
   "OverseerTaskAction",
   "OverseerToggle",
   "ShortcutHealth",
+  "SharedKeysHealth",
+  "SharedKeysPull",
+  "SharedKeysPush",
+  "SharedKeysSync",
   "SvgPreview",
   "Trouble",
   "WorkspaceAdd",
@@ -239,6 +265,15 @@ function M.check()
     end
   end
 
+  local key_sync = require("config.key_sync").health()
+  report.shared_routes = key_sync.routes
+  for _, message in ipairs(key_sync.errors) do
+    add(report.errors, "shared key sync: " .. message)
+  end
+  for _, message in ipairs(key_sync.warnings) do
+    add(report.warnings, "shared key sync: " .. message)
+  end
+
   for _, executable in ipairs(optional_executables) do
     if vim.fn.executable(executable) == 0 then
       add(report.warnings, executable .. " is unavailable; its optional shortcut will show a warning")
@@ -272,10 +307,11 @@ function M.show()
   local report = M.check()
   local lines = {
     ("Shortcut audit: %s"):format(report.ok and "PASS" or "FAIL"),
-    ("Leader mappings: %d | required custom mappings: %d | command mappings: %d"):format(
+    ("Leader mappings: %d | required custom mappings: %d | command mappings: %d | shared routes: %d"):format(
       report.leader_maps,
       report.required_maps,
-      report.command_maps
+      report.command_maps,
+      report.shared_routes or 0
     ),
   }
 

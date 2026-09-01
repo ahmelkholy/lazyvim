@@ -1,0 +1,371 @@
+{
+  "version": 1,
+  "routes": [
+    {
+      "key": "space",
+      "command": "vscode-neovim.lua",
+      "args": ["require('config.vscode_parity').show_leader()"],
+      "when": "editorTextFocus && neovim.init && neovim.mode == 'normal' && !whichkeyVisible && !lazygitFocus",
+      "nvim": "<Space>",
+      "description": "Leader menu"
+    },
+    
+    {
+      "key": "ctrl+r",
+      "command": "workbench.action.openRecent",
+      "nvim": "<C-r>",
+      "description": "Recent"
+    },
+    {
+      "key": "ctrl+a",
+      "command": "vscode-neovim.send",
+      "args": "<C-a>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-a>"
+    },
+    {
+      "key": "ctrl+b",
+      "command": "vscode-neovim.send",
+      "args": "<C-b>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-b>"
+    },
+    {
+      "key": "ctrl+c",
+      "command": "vscode-neovim.send",
+      "args": "<C-c>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-c>"
+    },
+    {
+      "key": "ctrl+d",
+      "command": "vscode-neovim.send",
+      "args": "<C-d>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-d>"
+    },
+    {
+      "key": "ctrl+e",
+      "command": "vscode-neovim.send",
+      "args": "<C-e>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-e>"
+    },
+    {
+      "key": "ctrl+f",
+      "command": "vscode-neovim.send",
+      "args": "<C-f>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-f>"
+    },
+    {
+      "key": "ctrl+g",
+      "command": "vscode-neovim.send",
+      "args": "<C-g>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-g>"
+    },
+    {
+      "key": "ctrl+h",
+      "command": "vscode-neovim.send",
+      "args": "<C-h>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-h>"
+    },
+    {
+      "key": "ctrl+i",
+      "command": "vscode-neovim.send",
+      "args": "<C-i>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-i>"
+    },
+    {
+      "key": "ctrl+j",
+      "command": "vscode-neovim.send",
+      "args": "<C-j>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-j>"
+    },
+    {
+      "key": "ctrl+k",
+      "command": "vscode-neovim.send",
+      "args": "<C-k>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-k>"
+    },
+    {
+      "key": "ctrl+l",
+      "command": "vscode-neovim.send",
+      "args": "<C-l>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-l>"
+    },
+    {
+      "key": "ctrl+m",
+      "command": "vscode-neovim.send",
+      "args": "<C-m>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-m>"
+    },
+    {
+      "key": "ctrl+n",
+      "command": "vscode-neovim.send",
+      "args": "<C-n>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-n>"
+    },
+    {
+      "key": "ctrl+o",
+      "command": "vscode-neovim.send",
+      "args": "<C-o>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-o>"
+    },
+    {
+      "key": "ctrl+p",
+      "command": "vscode-neovim.send",
+      "args": "<C-p>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-p>"
+    },
+    {
+      "key": "ctrl+q",
+      "command": "vscode-neovim.send",
+      "args": "<C-q>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-q>"
+    },
+    {
+      "key": "ctrl+s",
+      "command": "vscode-neovim.send",
+      "args": "<C-s>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-s>"
+    },
+    {
+      "key": "ctrl+t",
+      "command": "vscode-neovim.send",
+      "args": "<C-t>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-t>"
+    },
+    {
+      "key": "ctrl+u",
+      "command": "vscode-neovim.send",
+      "args": "<C-u>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-u>"
+    },
+    {
+      "key": "ctrl+v",
+      "command": "vscode-neovim.send",
+      "args": "<C-v>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-v>"
+    },
+    {
+      "key": "ctrl+w",
+      "command": "vscode-neovim.send",
+      "args": "<C-w>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-w>"
+    },
+    {
+      "key": "ctrl+x",
+      "command": "vscode-neovim.send",
+      "args": "<C-x>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-x>"
+    },
+    {
+      "key": "ctrl+y",
+      "command": "vscode-neovim.send",
+      "args": "<C-y>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-y>"
+    },
+    {
+      "key": "ctrl+/",
+      "command": "vscode-neovim.send",
+      "args": "<C-/>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-/>"
+    },
+    {
+      "key": "ctrl+]",
+      "command": "vscode-neovim.send",
+      "args": "<C-]>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-]>"
+    },
+    {
+      "key": "ctrl+\\",
+      "command": "vscode-neovim.send",
+      "args": "<C-\\>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-\\>"
+    },
+    {
+      "key": "ctrl+6",
+      "command": "vscode-neovim.send",
+      "args": "<C-^>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-^>"
+    },
+    {
+      "key": "ctrl+up",
+      "command": "vscode-neovim.send",
+      "args": "<C-Up>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-Up>"
+    },
+    {
+      "key": "ctrl+down",
+      "command": "vscode-neovim.send",
+      "args": "<C-Down>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-Down>"
+    },
+    {
+      "key": "ctrl+left",
+      "command": "vscode-neovim.send",
+      "args": "<C-Left>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-Left>"
+    },
+    {
+      "key": "ctrl+right",
+      "command": "vscode-neovim.send",
+      "args": "<C-Right>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-Right>"
+    },
+    {
+      "key": "f2",
+      "command": "vscode-neovim.send",
+      "args": "<F2>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<F2>"
+    },
+    {
+      "key": "f8",
+      "command": "vscode-neovim.send",
+      "args": "<F8>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<F8>"
+    },
+    {
+      "key": "shift+f8",
+      "command": "vscode-neovim.send",
+      "args": "<S-F8>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<S-F8>"
+    },
+    {
+      "key": "f12",
+      "command": "vscode-neovim.send",
+      "args": "<F12>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<F12>"
+    },
+    {
+      "key": "shift+f12",
+      "command": "vscode-neovim.send",
+      "args": "<S-F12>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<S-F12>"
+    },
+    {
+      "key": "ctrl+.",
+      "command": "vscode-neovim.send",
+      "args": "<C-.>",
+      "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
+      "nvim": "<C-.>"
+    },
+    {
+      "key": "ctrl+[",
+      "command": "vscode-neovim.send",
+      "args": "<C-[>",
+      "when": "editorTextFocus && neovim.init && neovim.mode == 'normal' && !lazygitFocus",
+      "nvim": "<C-[>"
+    },
+    {
+      "key": "ctrl+enter",
+      "command": "vscode-neovim.send",
+      "args": "<C-CR>",
+      "when": "editorTextFocus && neovim.init && neovim.mode == 'normal' && !lazygitFocus",
+      "nvim": "<C-CR>"
+    },
+    {
+      "key": "ctrl+shift+n",
+      "command": "vscode-neovim.send",
+      "args": "<C-S-n>",
+      "when": "editorTextFocus && neovim.init && neovim.mode == 'normal' && !lazygitFocus",
+      "nvim": "<C-S-n>"
+    },
+    {
+      "key": "shift+alt+q",
+      "command": "vscode-neovim.send",
+      "args": "<S-A-q>",
+      "when": "editorTextFocus && neovim.init && neovim.mode == 'normal' && !lazygitFocus",
+      "nvim": "<S-A-q>"
+    },
+    {
+      "key": "alt+t",
+      "command": "vscode-neovim.send",
+      "args": "<A-t>",
+      "when": "editorTextFocus && neovim.init && neovim.mode == 'normal' && !lazygitFocus",
+      "nvim": "<A-t>"
+    },
+    {
+      "key": "ctrl+alt+b",
+      "command": "vscode-neovim.send",
+      "args": "<C-A-b>",
+      "when": "editorTextFocus && neovim.init && neovim.mode == 'normal' && !lazygitFocus",
+      "nvim": "<C-A-b>"
+    },
+    {
+      "key": "alt+b",
+      "command": "vscode-neovim.send",
+      "args": "<A-b>",
+      "when": "editorTextFocus && neovim.init && neovim.mode == 'normal' && !lazygitFocus",
+      "nvim": "<A-b>"
+    },
+    {
+      "key": "ctrl+shift+b",
+      "command": "vscode-neovim.send",
+      "args": "<C-S-b>",
+      "when": "editorTextFocus && neovim.init && neovim.mode == 'normal' && !lazygitFocus",
+      "nvim": "<C-S-b>"
+    },
+    {
+      "key": "ctrl+alt+s",
+      "command": "vscode-neovim.send",
+      "args": "<C-A-s>",
+      "when": "editorTextFocus && neovim.init && neovim.mode == 'normal' && !lazygitFocus",
+      "nvim": "<C-A-s>"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "command": "vscode-neovim.send",
+      "args": "<C-A-n>",
+      "when": "editorTextFocus && neovim.init && neovim.mode == 'normal' && !lazygitFocus",
+      "nvim": "<C-A-n>"
+    },
+    {
+      "key": "ctrl+shift+alt+r",
+      "command": "vscode-neovim.send",
+      "args": "<C-S-A-r>",
+      "when": "editorTextFocus && neovim.init && neovim.mode == 'normal' && !lazygitFocus",
+      "nvim": "<C-S-A-r>"
+    },
+    {
+      "key": "ctrl+shift+f",
+      "command": "vscode-neovim.send",
+      "args": "<C-S-f>",
+      "when": "editorTextFocus && neovim.init && neovim.mode == 'normal' && !lazygitFocus",
+      "nvim": "<C-S-f>",
+      "description": "Toggle activity bar / Explorer"
+    }
+  ]
+}

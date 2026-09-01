@@ -10,6 +10,7 @@ end, { desc = "Open the personalized VS Code to Neovim transition guide" })
 require("config.workspace").setup()
 require("config.workspaces").setup()
 require("config.symbol_links").setup()
+require("config.key_sync").setup()
 
 vim.api.nvim_create_user_command("ShortcutHealth", function()
   require("config.shortcut_health").show()

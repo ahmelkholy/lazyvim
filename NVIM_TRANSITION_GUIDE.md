@@ -1,26 +1,38 @@
 # VS Code to Neovim: Ahmed's Transition Guide
 
-This configuration now chooses stability over copying every VS Code shortcut.
-VS Code keeps your established keybindings. Standalone Neovim keeps native
-motions and LazyVim conventions so plugins, help pages, and other Neovim setups
-behave predictably.
+This configuration uses the same Neovim motions, editing plugins, LazyVim
+leader paths, and discovery prefixes in standalone Neovim and VS Code. Actions
+that need a file picker, debugger, test view, Git UI, terminal, pane, or settings
+screen keep the same key path but open the native surface of the active host.
+VS Code retains ownership only while inserting text and in non-editor controls.
 
 ## The One Rule
 
 `<leader>` means Space. When you do not know a command, press Space and wait.
-WhichKey will show the available groups and actions.
+WhichKey will show the available groups and actions. In VS Code editors, that
+menu is generated from the same effective Neovim mappings, including contextual
+buffer mappings; in VS Code side lists it uses the native static list menu.
 
 Run `:ShortcutHealth` to audit every effective leader mapping, required custom
 shortcut, mapped command, plugin module, external tool, and clipboard provider.
+Run `:VscodeParityHealth` from VSCode-Neovim to audit the embedded leader tree
+and native prefix menus.
+
+Shared physical routes are synchronized bidirectionally through
+`shared-keybindings.json` and the marked `NVIM SHARED KEY ROUTES` block in VS
+Code. Run `:SharedKeysHealth` to audit them or `:SharedKeysSync` to reconcile
+the newer side immediately.
 
 ## Your Most Important Replacements
 
 | Your VS Code instinct | Use in standalone Neovim | Why |
 | --- | --- | --- |
 | `Ctrl+P` Quick Open | `Ctrl+P` or `<leader><space>` | Bounded project file picker |
-| `Ctrl+Shift+F` Search | `Ctrl+Shift+F` or `Ctrl+Alt+Q` | Workspace-wide live grep |
-| `Ctrl+R` Recent | `<leader>fr` | `Ctrl+R` remains native redo |
-| `Ctrl+Q` Close editor | `<leader>wq` or `<leader>bd` | Closes only the file and selects the next one |
+| `Ctrl+Shift+F` Activity Bar | `Ctrl+Shift+F` | Toggles VS Code's Activity Bar or Neovim's Explorer |
+| `Ctrl+Alt+Q` Search | `Ctrl+Alt+Q` or `<leader>/` | Workspace-wide live grep |
+| `Ctrl+R` Recent | `Ctrl+R` or `<leader>fr` | Opens Recent in both hosts |
+| `Ctrl+Q` Close editor | `Ctrl+Q`, `<leader>wq`, or `<leader>bd` | Closes only the file and selects the next one |
+| `Ctrl+\` Widen editor | `Ctrl+\` | Toggles the current file/pane wide in both hosts |
 | `Ctrl+W` Split right | `Ctrl+W v` or `<leader>\|` | `Ctrl+W` is Neovim's window prefix |
 | `Ctrl+J` Toggle panel | `<leader>ft` or `Ctrl+/` | `Ctrl+J` moves to the lower split |
 | `Ctrl+K` Save without format | `<leader>W` | `Ctrl+K` moves to the upper split |
@@ -57,10 +69,11 @@ Think of `Ctrl+W` as "window command", then press the action:
 | --- | --- |
 | Split right | `Ctrl+W v` |
 | Split below | `Ctrl+W s` |
-| Move left/down/up/right | `Ctrl+H/J/K/L` |
+| Move left/down/up/right | `Ctrl+H/J/K/L` or `Space w h/j/k/l` |
 | Close current window | `Ctrl+W c` |
 | Close current window, safely | `<leader>wQ` |
 | Equalize sizes | `Ctrl+W =` |
+| Equivalent Space window menu | `Space w`, then `h/j/k/l`, `s`, `v`, `w` (next), `W` (previous), or `=` |
 | Move current file left/right | `Ctrl+Alt+W`, `Ctrl+Alt+E` |
 | Maximize/restore the current panel inside Neovim | `Ctrl+Alt+T` |
 | Toggle the centered Zen view without resizing the terminal | `F11` |
@@ -101,8 +114,9 @@ and `gT` move to the next and previous opened workspace.
 | Project files (bounded fuzzy search) | `Ctrl+P` or `<leader><space>` |
 | Switch to any open file (instant) | `<leader>,` |
 | Next/previous open editor | `Ctrl+Tab`, `Ctrl+Shift+Tab` |
-| Recent files | `<leader>fr` |
-| Text search across files | `Ctrl+Shift+F`, `Ctrl+Alt+Q`, or `<leader>/` |
+| Recent files | `Ctrl+R` or `<leader>fr` |
+| Toggle left navigation | `Ctrl+Shift+F` (Activity Bar in VS Code, Explorer in Neovim) |
+| Text search across files | `Ctrl+Alt+Q` or `<leader>/` |
 | Open or focus Explorer | `Ctrl+Alt+D` |
 | Toggle/close Explorer | `<leader>e`, `Ctrl+Shift+E`, or `Alt+F` |
 | Reveal current file in Explorer | `<leader>er` |
@@ -146,7 +160,7 @@ of replacing an editor.
 | Insert after cursor | `a` |
 | Return to Normal mode | `Esc` |
 | Character/line/block selection | `v`, `V`, `Ctrl+V` |
-| Undo/redo | `u`, `Ctrl+R` |
+| Undo/redo | `u`, `:redo` |
 | Repeat the last change | `.` |
 | Copy/delete/paste | `y`, `d`, `p` |
 | Comment line/selection | `gcc`, `gc` |
@@ -178,7 +192,7 @@ Uppercase `R` avoids LazyVim's existing `<leader>r` refactoring group:
 
 ## A Practical Learning Order
 
-1. First week: learn modes, `hjkl`, `w`, `b`, `u`, `Ctrl+R`, and `.`.
+1. First week: learn modes, `hjkl`, `w`, `b`, `u`, `:redo`, and `.`.
 2. Then learn files: `<leader><space>`, `<leader>/`, and `<leader>e`.
 3. Then learn windows: `Ctrl+W v/s/c/=` and `Ctrl+H/J/K/L`.
 4. Add language actions only when needed: `gd`, `gr`, `<leader>ca`, and
