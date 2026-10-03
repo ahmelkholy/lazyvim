@@ -2,12 +2,13 @@ local M = {}
 
 local uv = vim.uv or vim.loop
 local jsonc = require("config.jsonc")
+local key_actions = require("config.key_actions")
 local begin_marker = "// BEGIN NVIM SHARED KEY ROUTES"
 local end_marker = "// END NVIM SHARED KEY ROUTES"
 local route_metadata_prefix = "// NVIM SHARED "
-local manifest_fields = { "key", "command", "args", "when", "nvim", "description" }
+local manifest_fields = { "key", "command", "args", "when", "nvim", "description", "modes", "source", "replaced" }
 local binding_fields = { "key", "command", "args", "when" }
-local metadata_fields = { "nvim", "description" }
+local metadata_fields = { "nvim", "description", "modes", "source", "replaced" }
 
 M.manifest_path = vim.fn.stdpath("config") .. "/shared-keybindings.json"
 
@@ -103,7 +104,12 @@ local function read_manifest()
   if not ok then
     return nil, "invalid shared key manifest: " .. tostring(decoded)
   end
-  if type(decoded) ~= "table" or decoded.version ~= 1 or type(decoded.routes) ~= "table" then
+  if
+    type(decoded) ~= "table"
+    or decoded.version ~= 1
+    or type(decoded.routes) ~= "table"
+    or not vim.islist(decoded.routes)
+  then
     return nil, "shared key manifest must contain version 1 and a routes array"
   end
   return decoded
@@ -146,38 +152,111 @@ local function read_managed_bindings()
     end
     return nil, "managed route markers are missing from VS Code keybindings.json", "unmanaged"
   end
-  local fragment = {}
-  local metadata = {}
-  for index = first + 1, last - 1 do
-    local value = trim(lines[index])
-    if vim.startswith(value, route_metadata_prefix) then
-      local encoded = value:sub(#route_metadata_prefix + 1)
-      local metadata_ok, decoded_metadata = pcall(vim.json.decode, encoded)
-      if not metadata_ok or type(decoded_metadata) ~= "table" then
-        return nil, "invalid managed route metadata: " .. tostring(decoded_metadata)
+  local fragment = "[\n" .. table.concat(vim.list_slice(lines, first + 1, last - 1), "\n") .. "\n]"
+  local ok, objects = pcall(jsonc.objects, fragment)
+  if not ok then
+    return nil, "managed VS Code route block is invalid JSONC: " .. tostring(objects)
+  end
+  local routes, previous = {}, 1
+  for _, item in ipairs(objects) do
+    local binding = item.value
+    local prefix = fragment:sub(previous, item.first - 1)
+    local encoded = prefix:match("// NVIM SHARED ([^\r\n]+)")
+    if encoded then
+      local metadata_ok, values = pcall(vim.json.decode, encoded)
+      if not metadata_ok or type(values) ~= "table" then
+        return nil, "invalid managed route metadata: " .. tostring(values)
       end
-      metadata[#metadata + 1] = decoded_metadata
-    elseif value ~= "" and value:sub(1, 2) ~= "//" then
-      fragment[#fragment + 1] = lines[index]
+      for _, field in ipairs(metadata_fields) do
+        binding[field] = values[field]
+      end
+    end
+    -- Changing a native command must change its Neovim meaning too, not retain
+    -- stale metadata for the previous action. New supported entries need no tag.
+    local inferred, inference_err = key_actions.infer(binding)
+    if inferred then
+      if binding.command ~= "vscode-neovim.send" and binding.nvim and binding.nvim ~= inferred then
+        binding.description = nil
+      end
+      binding.nvim = inferred
+    elseif not binding.nvim then
+      return nil, "cannot share " .. tostring(binding.key) .. ": " .. inference_err
+    end
+    if binding.modes ~= nil and (type(binding.modes) ~= "table" or not vim.islist(binding.modes)) then
+      return nil, "managed shortcut modes must be an array"
+    end
+    if binding.source ~= "vscode-user" then
+      routes[#routes + 1] = binding
+    elseif type(binding.replaced) == "table" and vim.islist(binding.replaced) then
+      -- Recover the original route before replaying raw UI overrides. Removing
+      -- an override must restore the previous action, not erase it permanently.
+      for _, original in ipairs(binding.replaced) do
+        if
+          type(original) ~= "table"
+          or type(original.key) ~= "string"
+          or type(original.command) ~= "string"
+          or type(original.nvim) ~= "string"
+          or (original.modes ~= nil and (type(original.modes) ~= "table" or not vim.islist(original.modes)))
+        then
+          return nil, "invalid original shortcut saved in override metadata"
+        end
+        routes[#routes + 1] = original
+      end
+    end
+    previous = item.last + 1
+  end
+
+  -- VS Code's Keyboard Shortcuts UI appends rules after the generated block.
+  -- Import supported editor actions there, while leaving original JSONC intact.
+  local suffix = "[\n" .. table.concat(vim.list_slice(lines, last + 1, #lines), "\n")
+  suffix = suffix:gsub("^%[%s*,", "[")
+  local suffix_ok, additions = pcall(jsonc.decode, suffix)
+  if not suffix_ok then
+    return nil, "VS Code shortcuts after the managed block are invalid JSONC: " .. tostring(additions)
+  end
+  M._import_warnings = {}
+  for _, binding in ipairs(additions) do
+    if type(binding) ~= "table" then
+      return nil, "VS Code keybindings must contain shortcut objects"
+    end
+    if type(binding.command) == "string" and binding.command:sub(1, 1) ~= "-" then
+      local inferred, inference_err = key_actions.infer(binding)
+      local scope_ok, scope_err = key_actions.editor_scope(binding)
+      local physical, key_err = M.to_nvim_key(binding.key)
+      local is_leader = type(binding.key) == "string"
+        and (binding.key:lower() == "space" or vim.startswith(binding.key:lower(), "space "))
+      if inferred and scope_ok and physical and not is_leader then
+        local route = route_view(binding)
+        route.nvim, route.source = inferred, "vscode-user"
+        route.modes = binding.when and binding.when:find("'visual'", 1, true) and { "x" } or { "n" }
+        local replaced = {}
+        -- Only replace the same modal scope; visual-only rules must not erase
+        -- the normal route. Save original actions for later UI-rule removal.
+        routes = vim.tbl_filter(function(existing)
+          local overlaps = vim.tbl_contains(existing.modes or { "n" }, route.modes[1])
+          if existing.key:lower() ~= route.key:lower() or not overlaps then
+            return true
+          end
+          if existing.source == "vscode-user" then
+            vim.list_extend(replaced, existing.replaced or {})
+          else
+            replaced[#replaced + 1] = route_view(existing)
+          end
+          return false
+        end, routes)
+        if #replaced > 0 then
+          route.replaced = replaced
+        end
+        routes[#routes + 1] = route
+      else
+        M._import_warnings[#M._import_warnings + 1] = ("VS Code-only %s: %s"):format(
+          tostring(binding.key),
+          inference_err or scope_err or key_err or "Space chords must be added in shared_keymaps.lua"
+        )
+      end
     end
   end
-  local ok, decoded = pcall(jsonc.decode, "[\n" .. table.concat(fragment, "\n") .. "\n]")
-  if not ok or type(decoded) ~= "table" then
-    return nil, "managed VS Code route block is invalid JSON: " .. tostring(decoded)
-  end
-  if #metadata ~= #decoded then
-    return nil,
-      ("managed VS Code routes need one NVIM SHARED metadata comment each (%d routes, %d comments)"):format(
-        #decoded,
-        #metadata
-      )
-  end
-  for index, values in ipairs(metadata) do
-    for _, field in ipairs(metadata_fields) do
-      decoded[index][field] = values[field]
-    end
-  end
-  return decoded
+  return routes
 end
 
 local function render_metadata(route)
@@ -206,11 +285,11 @@ local function render_binding(route, is_last)
   return lines
 end
 
-local function render_binding_block(routes)
+local function render_binding_block(routes, trailing)
   local lines = { "  " .. begin_marker }
   for index, route in ipairs(routes) do
     lines[#lines + 1] = render_metadata(route)
-    vim.list_extend(lines, render_binding(route, index == #routes))
+    vim.list_extend(lines, render_binding(route, index == #routes and not trailing))
   end
   lines[#lines + 1] = "  " .. end_marker
   return lines
@@ -259,13 +338,19 @@ local function replace_binding_block(routes)
   for index = 1, first - 1 do
     output[#output + 1] = lines[index]
   end
-  vim.list_extend(output, render_binding_block(routes))
+  local suffix = table.concat(vim.list_slice(lines, last + 1, #lines), "\n")
+  local suffix_clean = jsonc.strip(suffix):match("^%s*(.)")
+  vim.list_extend(output, render_binding_block(routes, suffix_clean ~= "]" and suffix_clean ~= ","))
   for index = last + 1, #lines do
     output[#output + 1] = lines[index]
   end
   local normalized = table.concat(output, "\n")
   if eol == "\r\n" then
     normalized = normalized:gsub("\n", "\r\n")
+  end
+  local valid, decode_err = pcall(jsonc.decode, normalized)
+  if not valid then
+    return false, "refusing to write invalid VS Code JSONC: " .. tostring(decode_err)
   end
   if normalized == raw then
     return true, false
@@ -373,6 +458,39 @@ function M.to_nvim_key(value)
   return table.concat(keys)
 end
 
+function M.to_vscode_key(value)
+  value = value:gsub("<leader>", vim.g.mapleader or "\\")
+  local modifiers = { C = "ctrl", S = "shift", A = "alt", M = "alt", D = "cmd" }
+  local names = { CR = "enter", Esc = "escape", BS = "backspace", Del = "delete", Space = "space" }
+  local keys = {}
+  local index = 1
+  while index <= #value do
+    if value:sub(index, index) == "<" then
+      local close = value:find(">", index, true)
+      if not close then
+        return nil, "unterminated Neovim key token"
+      end
+      local token = value:sub(index + 1, close - 1)
+      local parts = {}
+      while token:match("^[CSAMD]%-") do
+        parts[#parts + 1] = modifiers[token:sub(1, 1)]
+        token = token:sub(3)
+      end
+      if token == "^" then
+        token = "6"
+      end
+      parts[#parts + 1] = names[token] or token:lower()
+      keys[#keys + 1] = table.concat(parts, "+")
+      index = close + 1
+    else
+      local character = value:sub(index, index)
+      keys[#keys + 1] = character == " " and "space" or character
+      index = index + 1
+    end
+  end
+  return table.concat(keys, " ")
+end
+
 local function target_for(route)
   if type(route.nvim) == "string" and route.nvim ~= "" then
     return route.nvim
@@ -415,6 +533,23 @@ local function validate_manifest(manifest)
       if route.description ~= nil and type(route.description) ~= "string" then
         errors[#errors + 1] = prefix .. " has a non-string description"
       end
+      if route.modes ~= nil then
+        if type(route.modes) ~= "table" or not vim.islist(route.modes) or #route.modes == 0 then
+          errors[#errors + 1] = prefix .. " modes must be a non-empty array"
+        else
+          for _, mode in ipairs(route.modes) do
+            if mode ~= "n" and mode ~= "x" and mode ~= "i" and mode ~= "t" then
+              errors[#errors + 1] = prefix .. " has unsupported mode " .. tostring(mode)
+            end
+          end
+        end
+      end
+      if route.source ~= nil and type(route.source) ~= "string" then
+        errors[#errors + 1] = prefix .. " source must be a string"
+      end
+      if route.replaced ~= nil and (type(route.replaced) ~= "table" or not vim.islist(route.replaced)) then
+        errors[#errors + 1] = prefix .. " replaced routes must be an array"
+      end
 
       if type(route.key) == "string" and route.key ~= "" then
         local identity = route.key:lower() .. "\0" .. tostring(route.when)
@@ -444,55 +579,180 @@ local function validate_manifest(manifest)
   return errors
 end
 
-local function restore_mapping(lhs, mapping)
-  pcall(vim.keymap.del, "n", lhs)
-  if not mapping or vim.tbl_isempty(mapping) then
-    return
+local function key_identity(key)
+  key = key:gsub("<leader>", vim.g.mapleader or "\\")
+  return vim.api.nvim_replace_termcodes(key, true, true, true)
+end
+
+function M.global_maps(mode)
+  local mappings = {}
+  for _, mapping in ipairs(vim.api.nvim_get_keymap(mode)) do
+    mappings[key_identity(mapping.lhs)] = mapping
   end
-  local rhs = mapping.callback or mapping.rhs
-  if rhs == nil or rhs == "" then
-    return
-  end
-  vim.keymap.set("n", lhs, rhs, {
-    desc = mapping.desc,
+  return mappings
+end
+
+function M.mapping_options(mapping, desc)
+  return {
+    desc = desc or mapping.desc,
     expr = mapping.expr == 1,
     nowait = mapping.nowait == 1,
     remap = mapping.noremap == 0,
     replace_keycodes = mapping.replace_keycodes == 1,
     silent = mapping.silent == 1,
-  })
+  }
 end
 
-local function clear_aliases()
-  for lhs, mapping in pairs(M._aliases or {}) do
-    restore_mapping(lhs, mapping)
+function M.restore_mapping(mode, lhs, mapping)
+  pcall(vim.keymap.del, mode, lhs)
+  if not mapping or vim.tbl_isempty(mapping) then
+    return
+  end
+  local rhs = mapping.callback or mapping.rhs
+  if rhs == nil then
+    return
+  end
+  vim.keymap.set(mode, lhs, rhs, M.mapping_options(mapping))
+end
+
+function M.clear_aliases()
+  for _, alias in pairs(M._aliases or {}) do
+    M.restore_mapping(alias.mode, alias.lhs, alias.original)
   end
   M._aliases = {}
 end
 
 function M.apply_aliases(manifest)
-  if vim.g.vscode then
-    return
-  end
-  clear_aliases()
+  M.clear_aliases()
   manifest = manifest or select(1, read_manifest())
   if not manifest then
     return
+  end
+  local baselines = {}
+  for _, mode in ipairs({ "n", "x", "i", "t" }) do
+    baselines[mode] = M.global_maps(mode)
   end
   for _, route in ipairs(manifest.routes) do
     local physical = M.to_nvim_key(route.key)
     local target = target_for(route)
     if physical and target and not same_key(physical, target) then
-      local original = vim.fn.maparg(physical, "n", false, true)
-      M._aliases[physical] = vim.tbl_isempty(original) and false or original
-      local target_mapping = vim.fn.maparg(target, "n", false, true)
-      vim.keymap.set("n", physical, target, {
-        remap = true,
-        silent = true,
-        desc = route.description or target_mapping.desc or ("Shared route to " .. target),
-      })
+      for _, mode in ipairs(route.modes or { "n" }) do
+        local identity = mode .. "\0" .. key_identity(physical)
+        M._aliases[identity] = { mode = mode, lhs = physical, original = baselines[mode][key_identity(physical)] }
+        local target_mapping = baselines[mode][key_identity(target)]
+        local desc = route.description or (target_mapping and target_mapping.desc) or ("Shared route to " .. target)
+        if target_mapping then
+          -- Capture the original implementation, not an alias-to-alias chain.
+          -- Key swaps must swap their actions without infinite remap recursion.
+          vim.keymap.set(
+            mode,
+            physical,
+            target_mapping.callback or target_mapping.rhs,
+            M.mapping_options(target_mapping, desc)
+          )
+        else
+          vim.keymap.set(mode, physical, target, { remap = false, silent = true, desc = desc })
+        end
+      end
     end
   end
+end
+
+function M.is_alias(mode, lhs)
+  return M._aliases and M._aliases[mode .. "\0" .. key_identity(lhs)] ~= nil
+end
+
+function M.set_custom_routes(routes)
+  local manifest, err = read_manifest()
+  if not manifest then
+    return false, err
+  end
+  local before = vim.deepcopy(manifest.routes)
+  local previous = {}
+  local kept = {}
+  for _, route in ipairs(manifest.routes) do
+    if route.source and vim.startswith(route.source, "shared_keymaps:") then
+      previous[route.source] = route
+    else
+      kept[#kept + 1] = route
+    end
+  end
+  for _, route in ipairs(routes) do
+    -- A VS Code edit of a generated physical key survives reloads/restarts.
+    -- The shared Lua file still owns the underlying action's implementation.
+    local old = previous[route.source]
+    if old and old.command == route.command and old.args == route.args then
+      local updated = vim.deepcopy(route)
+      updated.key = old.key
+      kept[#kept + 1] = updated
+    else
+      kept[#kept + 1] = old or route
+    end
+  end
+  manifest.routes = kept
+  local errors = validate_manifest(manifest)
+  if #errors > 0 then
+    return false, table.concat(errors, "; ")
+  end
+  if vim.deep_equal(before, kept) then
+    return true
+  end
+  local rendered = render_manifest(manifest)
+  if read_raw(M.manifest_path) ~= rendered then
+    return write_raw(M.manifest_path, rendered)
+  end
+  return true
+end
+
+function M.add(key, target, opts)
+  opts = opts or {}
+  if type(key) ~= "string" or type(target) ~= "string" then
+    return false, "shared key and Neovim target must be strings"
+  end
+  if key:sub(1, 1) == "<" then
+    key = M.to_vscode_key(key)
+  end
+  local physical, key_err = M.to_nvim_key(key)
+  if not physical then
+    return false, key_err
+  end
+  if key:lower() == "space" or vim.startswith(key:lower(), "space ") then
+    return false, "Add leader shortcuts in :SharedKeysEdit so VS Code's Space menu remains available"
+  end
+  local reconciled, reconcile_err = M.sync()
+  if not reconciled then
+    return false, reconcile_err
+  end
+  local manifest, err = read_manifest()
+  if not manifest then
+    return false, err
+  end
+  local when = opts.when or "editorTextFocus && neovim.init && neovim.mode == 'normal' && !lazygitFocus"
+  manifest.routes = vim.tbl_filter(function(route)
+    return route.key:lower() ~= key:lower() or route.when ~= when
+  end, manifest.routes)
+  manifest.routes[#manifest.routes + 1] = {
+    key = key,
+    command = "vscode-neovim.send",
+    args = target,
+    nvim = target,
+    when = when,
+    description = opts.description,
+    modes = opts.modes or { "n" },
+  }
+  local errors = validate_manifest(manifest)
+  if #errors > 0 then
+    return false, table.concat(errors, "; ")
+  end
+  local written, write_err = write_raw(M.manifest_path, render_manifest(manifest))
+  if not written then
+    return false, write_err
+  end
+  if not M.keybindings_path or not uv.fs_stat(vim.fs.dirname(M.keybindings_path)) then
+    M.apply_aliases(manifest)
+    return true
+  end
+  return M.push(opts)
 end
 
 function M.push(opts)
@@ -624,6 +884,12 @@ function M.health()
     report.warnings[#report.warnings + 1] = "VS Code keybindings.json is unavailable on this host"
   end
   report.ok = #report.errors == 0 and report.routes > 0
+  vim.list_extend(report.warnings, M._import_warnings or {})
+  local custom = package.loaded["config.custom_keys"]
+  if custom then
+    vim.list_extend(report.errors, custom.errors or {})
+    report.ok = report.ok and #(custom.errors or {}) == 0
+  end
   return report
 end
 
@@ -631,7 +897,7 @@ function M.show_health()
   local report = M.health()
   local lines = {
     ("Shared key sync: %s"):format(report.ok and "PASS" or "FAIL"),
-    ("Routes: %d | standalone aliases: %d"):format(report.routes, report.aliases),
+    ("Routes: %d | shared aliases: %d"):format(report.routes, report.aliases),
   }
   for _, message in ipairs(report.errors) do
     lines[#lines + 1] = "ERROR: " .. message
@@ -692,6 +958,35 @@ function M.setup()
   M._watchers = {}
   M._aliases = {}
   M._expected_writes = {}
+  local custom = require("config.custom_keys")
+  custom.setup()
+
+  vim.api.nvim_create_user_command("SharedKeysAdd", function(args)
+    if #args.fargs >= 2 then
+      local ok, err = M.add(args.fargs[1], args.fargs[2], {
+        description = #args.fargs > 2 and table.concat(args.fargs, " ", 3) or nil,
+        notify = true,
+      })
+      if not ok then
+        vim.notify(err, vim.log.levels.ERROR)
+      end
+      return
+    end
+    vim.ui.input({ prompt = "Shared key (e.g. ctrl+alt+k): " }, function(key)
+      if not key or key == "" then
+        return
+      end
+      vim.ui.input({ prompt = "Existing Neovim action (e.g. <F2> or <leader>fn): " }, function(target)
+        if not target or target == "" then
+          return
+        end
+        local ok, err = M.add(key, target, { notify = true })
+        if not ok then
+          vim.notify(err, vim.log.levels.ERROR)
+        end
+      end)
+    end)
+  end, { nargs = "*", desc = "Add a physical shortcut in both editors", force = true })
 
   vim.api.nvim_create_user_command("SharedKeysSync", function()
     local ok, err = M.sync({ notify = true })
@@ -717,7 +1012,7 @@ function M.setup()
   })
 
   vim.schedule(function()
-    local ok, err = M.sync()
+    local ok, err = custom.reload()
     if not ok and err then
       vim.notify(err, vim.log.levels.ERROR, { title = "Shared key sync" })
     end
@@ -729,11 +1024,14 @@ function M.setup()
   watch(M.keybindings_path, function()
     return M.sync()
   end)
+  watch(custom.path, function()
+    return custom.reload()
+  end)
 
   vim.api.nvim_create_autocmd("VimLeavePre", {
     group = vim.api.nvim_create_augroup("shared_key_sync_cleanup", { clear = true }),
     callback = function()
-      clear_aliases()
+      M.clear_aliases()
       for _, watcher in ipairs(M._watchers) do
         pcall(watcher.stop, watcher)
         pcall(watcher.close, watcher)

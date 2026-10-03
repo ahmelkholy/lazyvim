@@ -31,6 +31,21 @@ check("shortcut audit", function()
   assert(report.ok, table.concat(report.errors, "\n"))
 end)
 
+check("Find and undo/redo match VS Code while Ctrl+R stays Recent", function()
+  assert(vim.fn.maparg("<C-f>", "n") == "/")
+  assert(vim.fn.maparg("<C-r>", "n", false, true).desc == "Recent")
+  vim.cmd("silent! enew!")
+  api.nvim_buf_set_lines(0, 0, -1, false, { "base" })
+  vim.cmd("let &undolevels = &undolevels")
+  vim.fn.feedkeys(api.nvim_replace_termcodes("A!<Esc>", true, false, true), "xt")
+  assert(api.nvim_get_current_line() == "base!")
+  vim.fn.feedkeys(api.nvim_replace_termcodes("<C-z>", true, false, true), "xt")
+  assert(api.nvim_get_current_line() == "base", "Ctrl+Z did not undo")
+  vim.fn.feedkeys(api.nvim_replace_termcodes("<C-S-z>", true, false, true), "xt")
+  assert(api.nvim_get_current_line() == "base!", "Ctrl+Shift+Z did not redo")
+  vim.cmd("silent! enew!")
+end)
+
 check("Space window navigation keeps native Neovim direction", function()
   vim.cmd("silent! only!")
   vim.cmd("silent! enew!")
@@ -69,7 +84,8 @@ check("shared key routes round-trip between Neovim and VS Code", function()
     local pushed, push_err = key_sync.push()
     assert(pushed, push_err)
     local report = key_sync.health()
-    assert(report.ok and report.routes == 52, table.concat(report.errors, "\n"))
+    local expected_routes = #vim.json.decode(table.concat(vim.fn.readfile(original_manifest), "\n")).routes
+    assert(report.ok and report.routes == expected_routes, table.concat(report.errors, "\n"))
 
     local raw = table.concat(vim.fn.readfile(temporary_keybindings), "\n")
     local needle = [["key": "ctrl+shift+f"]]
@@ -82,7 +98,9 @@ check("shared key routes round-trip between Neovim and VS Code", function()
     local pulled, pull_err = key_sync.pull()
     assert(pulled, pull_err)
     local decoded = vim.json.decode(table.concat(vim.fn.readfile(temporary_manifest), "\n"))
-    local route = decoded.routes[#decoded.routes]
+    local route = vim.tbl_filter(function(item)
+      return item.nvim == "<C-S-f>"
+    end, decoded.routes)[1]
     assert(route.key == "ctrl+shift+g", "VS Code key edit did not reach the manifest")
     assert(route.nvim == "<C-S-f>", "VS Code edit lost its standalone Neovim meaning")
 

@@ -367,6 +367,22 @@
       "when": "editorTextFocus && neovim.init && neovim.mode == 'normal' && !lazygitFocus",
       "nvim": "<C-S-f>",
       "description": "Toggle activity bar / Explorer"
+    },
+    {
+      "key": "ctrl+z",
+      "command": "vscode-neovim.send",
+      "args": "<C-z>",
+      "when": "editorTextFocus && neovim.init && neovim.mode == 'normal' && !lazygitFocus",
+      "nvim": "<C-z>",
+      "description": "Undo"
+    },
+    {
+      "key": "ctrl+shift+z",
+      "command": "vscode-neovim.send",
+      "args": "<C-S-z>",
+      "when": "editorTextFocus && neovim.init && neovim.mode == 'normal' && !lazygitFocus",
+      "nvim": "<C-S-z>",
+      "description": "Redo (Ctrl+R remains Recent)"
     }
   ]
 }

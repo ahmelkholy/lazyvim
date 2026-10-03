@@ -679,6 +679,7 @@ local group_names = {
   m = "+markdown/multicursor",
   o = "+tasks",
   q = "+quit/session",
+  k = "+shared shortcuts",
   r = "+refactor",
   R = "+run",
   s = "+search",
@@ -830,6 +831,9 @@ local function setup_direct_parity()
   bind("n", "u", counted_action("undo"), "VS Code undo")
   bind("n", "<C-r>", "workbench.action.openRecent", "Recent")
   bind("n", "<C-q>", "workbench.action.closeActiveEditor", "Close current file")
+  bind("n", "<C-f>", "actions.find", "Find in file")
+  bind("n", "<C-z>", counted_action("undo"), "Undo")
+  bind("n", "<C-S-z>", counted_action("redo"), "Redo (Ctrl+R remains Recent)")
   bind("n", "<C-\\>", "workbench.action.toggleEditorWidths", "Toggle current file wide")
   map("v", "<C-c>", '"+y', { silent = true, desc = "Copy visual selection to system clipboard" })
 
@@ -971,7 +975,11 @@ function M.health()
       local mapping = vim.fn.maparg(lhs, mode, false, true)
       if vim.tbl_isempty(mapping) then
         report.errors[#report.errors + 1] = ("missing declared leader action: %s %s"):format(mode, lhs)
-      elseif mapping.desc ~= spec[2] then
+      elseif
+        mapping.desc ~= spec[2]
+        and not require("config.custom_keys").owns(lhs, mode)
+        and not require("config.key_sync").is_alias(mode, lhs)
+      then
         report.errors[#report.errors + 1] = ("wrong declared leader owner: %s %s (%s)"):format(
           mode,
           lhs,
@@ -996,7 +1004,11 @@ function M.health()
     local mapping = vim.fn.maparg(expected[1], "n", false, true)
     if vim.tbl_isempty(mapping) then
       report.errors[#report.errors + 1] = "missing shared utility key: " .. expected[1]
-    elseif mapping.desc ~= expected[2] then
+    elseif
+      mapping.desc ~= expected[2]
+      and not require("config.custom_keys").owns(expected[1], "n")
+      and not require("config.key_sync").is_alias("n", expected[1])
+    then
       report.errors[#report.errors + 1] = ("wrong shared utility key owner: %s (%s)"):format(
         expected[1],
         mapping.desc or "no description"
@@ -1028,6 +1040,16 @@ function M.setup()
   setup_native_prefixes()
 
   map("n", "<leader>", M.show_leader, { silent = true, desc = "Leader (Which Key)" })
+
+  -- Personal shortcuts are the final owner in both hosts. The delayed default
+  -- parity setup must not overwrite aliases already loaded by key sync.
+  local custom = require("config.custom_keys")
+  custom.setup()
+  local loaded, err = custom.reload({ sync = false })
+  if not loaded then
+    vscode.notify(tostring(err), vim.log.levels.ERROR)
+  end
+  require("config.key_sync").apply_aliases()
 
   vim.api.nvim_create_user_command("VscodeParityHealth", function()
     local report = M.health()

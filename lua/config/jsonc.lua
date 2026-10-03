@@ -65,4 +65,41 @@ function M.decode(raw)
   return vim.json.decode(table.concat(out))
 end
 
+-- Locate top-level objects without regenerating unrelated user JSONC/comments.
+-- Offsets refer to raw, including a possible UTF-8 BOM and CRLF line endings.
+function M.objects(raw)
+  local decoded = M.decode(raw)
+  assert(type(decoded) == "table" and vim.islist(decoded), "expected a JSONC array")
+  for _, value in ipairs(decoded) do
+    assert(type(value) == "table" and not vim.islist(value), "keybindings must contain objects")
+  end
+  local clean = M.strip(raw)
+  local items, depth, quoted, index, first = {}, 0, false, 1, nil
+  while index <= #clean do
+    local char = clean:sub(index, index)
+    if quoted then
+      if char == "\\" then
+        index = index + 1
+      elseif char == '"' then
+        quoted = false
+      end
+    elseif char == '"' then
+      quoted = true
+    elseif char == "{" then
+      if depth == 0 then
+        first = index
+      end
+      depth = depth + 1
+    elseif char == "}" then
+      depth = depth - 1
+      if depth == 0 then
+        items[#items + 1] = { first = first, last = index, value = M.decode(raw:sub(first, index)) }
+      end
+    end
+    index = index + 1
+  end
+  assert(#items == #decoded, "keybindings must contain objects, not scalar/array entries")
+  return items
+end
+
 return M

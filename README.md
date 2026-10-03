@@ -251,8 +251,9 @@ Shared physical shortcuts have one bidirectional route manifest:
 `shared-keybindings.json`. Its generated counterpart is the marked `NVIM
 SHARED KEY ROUTES` block in VS Code's `keybindings.json`. While Neovim is
 running, changing either side updates the other; on startup, the newer side
-wins. Keep each `NVIM SHARED` metadata comment with its VS Code binding so its
-standalone Neovim meaning travels with it. Use `:SharedKeysHealth`,
+wins. Existing `NVIM SHARED` comments keep their semantic targets, modes and
+source ownership; new reviewed native/send bindings do not require a comment.
+Use `:SharedKeysHealth`,
 `:SharedKeysSync`, `:SharedKeysPush`, or `:SharedKeysPull` to audit or reconcile
 the routes explicitly. The Space menu needs no duplicate manifest: it is built
 directly from the effective Neovim mappings and buffer-local menus.
@@ -262,7 +263,43 @@ CRLF). It initializes the marked block in an existing keybindings array without
 removing other shortcuts. If VS Code is not installed, standalone Neovim still
 starts normally; `:SharedKeysPush` can initialize the file once its User folder
 exists. Invalid edits are reported without overwriting them. Automatic parity is
-limited to the marked shared routes, not arbitrary VS Code settings/commands.
+limited to shared editor actions, not arbitrary VS Code settings/commands.
+
+### Adding shortcuts from either editor
+
+- `Space k S` / `:SharedKeysEdit` opens `lua/config/shared_keymaps.lua` in either
+  editor. Save it to reload both running Neovim instances and refresh VS Code's
+  Space menu. Give every shortcut a `desc` so it appears in the menu.
+- `:SharedKeysAdd ctrl+alt+k <F2> Rename` adds a physical alias for an existing
+  Neovim action and generates its VS Code route. Calling `:SharedKeysAdd` alone
+  prompts for the keys. Leader shortcuts belong in the shared Lua file, not
+  VS Code Space chords (which would intercept the popup).
+- VS Code Keyboard Shortcuts UI additions after `END NVIM SHARED KEY ROUTES`
+  automatically import when their native command has a reviewed counterpart
+  in `key_actions.lua`, or when they use `vscode-neovim.send` with key-string
+  args. Edits/removals propagate too. Language, terminal, OS-specific and unknown
+  extension commands remain VS Code-only and appear in `:SharedKeysHealth`.
+- New plugin-specific behavior can supply `rhs` for standalone Neovim and a
+  `vscode` command for the embedded host. This requires two real implementations;
+  the sync does not invent equivalents for unavailable plugins or commands.
+
+```lua
+return {
+  { key = "<leader>on", target = "<leader>fn", desc = "New named file" },
+  { key = "<C-A-k>", target = "<F2>", desc = "Rename symbol" },
+}
+```
+
+Aliases capture the original action rather than chaining remaps, so swapped
+keys cannot loop. Invalid Lua edits retain the last working shortcuts. Run
+`:SharedKeysReload` for an explicit reload and `Space k H` for health checks.
+Ctrl+F finds in the current file; Ctrl+Z undoes; Ctrl+Shift+Z redoes in Normal
+mode. Ctrl+R stays Recent. Terminals must transmit modified keys for these to
+work; some terminal emulators cannot distinguish Ctrl+Shift+Z from Ctrl+Z.
+
+Local live reload does not push Git automatically. Pull the Neovim and VS Code
+repositories on each machine; VS Code Settings Sync alone does not copy Lua
+files or install Neovim plugins.
 
 ### Context-sensitive build/run/preview
 
@@ -291,6 +328,7 @@ From the Neovim configuration directory, run:
 
 ```sh
 nvim --headless -u NONE -l scripts/integration_regression.lua
+nvim --headless -u NONE -l scripts/shared_keys_regression.lua
 nvim --headless "+lua dofile(vim.fn.stdpath('config') .. '/scripts/nvim_regression.lua')"
 ```
 

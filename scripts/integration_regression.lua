@@ -49,7 +49,8 @@ check("portable sync initializes an existing JSONC array without removing user k
   assert(ok, err)
   local raw = table.concat(vim.fn.readfile(sync.keybindings_path, "b"), "\n")
   assert(raw:find('"command":"user.command"', 1, true))
-  assert(#jsonc.decode(raw) == 53)
+  local expected_routes = #vim.json.decode(table.concat(vim.fn.readfile(original_manifest), "\n")).routes
+  assert(#jsonc.decode(raw) == expected_routes + 1)
   assert(not raw:gsub("\r\n", ""):find("\n"), "CRLF was not preserved")
   local once = raw
   assert(sync.push())
@@ -98,6 +99,18 @@ check("embedded F11 uses native fullscreen, with Zen kept separate", function()
   assert(calls[#calls].command == "workbench.action.toggleFullScreen")
   parity.run_leader("<Space>uz")
   assert(calls[#calls].command == "workbench.action.toggleZenMode")
+end)
+
+check("find and undo/redo use native editor actions without losing Recent", function()
+  for key, command in pairs({
+    ["<C-f>"] = "actions.find",
+    ["<C-z>"] = "undo",
+    ["<C-S-z>"] = "redo",
+    ["<C-r>"] = "workbench.action.openRecent",
+  }) do
+    vim.fn.maparg(key, "n", false, true).callback()
+    assert(calls[#calls].command == command, key .. " used the wrong action")
+  end
 end)
 
 check("embedded leader menu covers effective maps and executes q q directly", function()
