@@ -93,6 +93,13 @@ vim.g.vscode = true
 local parity = require("config.vscode_parity")
 parity.setup()
 
+check("embedded F11 uses native fullscreen, with Zen kept separate", function()
+  vim.fn.maparg("<F11>", "n", false, true).callback()
+  assert(calls[#calls].command == "workbench.action.toggleFullScreen")
+  parity.run_leader("<Space>uz")
+  assert(calls[#calls].command == "workbench.action.toggleZenMode")
+end)
+
 check("embedded leader menu covers effective maps and executes q q directly", function()
   local health = parity.health()
   assert(health.ok, table.concat(health.errors, "\n"))

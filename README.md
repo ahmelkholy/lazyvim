@@ -226,7 +226,7 @@ line movement even though the custom `g` prefix menu is also enabled.
 | `Ctrl+Alt+W`, `Ctrl+Alt+E` | Move the current file to the left/right editor pane |
 | `Ctrl+\` | Toggle the current file/pane wide, then restore it |
 | `Ctrl+Alt+T` | Toggle a maximized panel inside Neovim |
-| `F11` | Toggle the active host's Zen view |
+| `F11` | True fullscreen in VS Code; Zen view in standalone Neovim |
 | `Ctrl+Alt+F` | Toggle the right-side symbol outline |
 | `Shift+Alt+F` | Format document or selection |
 | `Alt+Up`, `Alt+Down` | Move the current line or selection |
