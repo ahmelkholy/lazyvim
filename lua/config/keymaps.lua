@@ -8,6 +8,8 @@ if vim.g.vscode then
   return
 end
 
+require("config.build").setup()
+
 -- A conservative VS Code bridge for standalone Neovim. Only deliberate shared
 -- shortcuts plus keys that do not replace core motions, window, scrolling, or
 -- terminal controls belong here.

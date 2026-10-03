@@ -1,6 +1,7 @@
 local M = {}
 
 local uv = vim.uv or vim.loop
+local jsonc = require("config.jsonc")
 local begin_marker = "// BEGIN NVIM SHARED KEY ROUTES"
 local end_marker = "// END NVIM SHARED KEY ROUTES"
 local route_metadata_prefix = "// NVIM SHARED "
@@ -28,6 +29,9 @@ local user_dir = vscode_user_dir()
 M.keybindings_path = user_dir and (user_dir .. "/keybindings.json") or nil
 
 local function read_raw(path)
+  if not path then
+    return nil, "path is unavailable on this host"
+  end
   local handle, err = io.open(path, "rb")
   if not handle then
     return nil, err
@@ -137,7 +141,10 @@ local function read_managed_bindings()
   local lines = normalize_lines(raw)
   local first, last = marker_range(lines)
   if not first or not last then
-    return nil, "managed route markers are missing from VS Code keybindings.json"
+    if raw:find(begin_marker, 1, true) or raw:find(end_marker, 1, true) then
+      return nil, "managed route markers are incomplete; restore both markers before syncing"
+    end
+    return nil, "managed route markers are missing from VS Code keybindings.json", "unmanaged"
   end
   local fragment = {}
   local metadata = {}
@@ -154,7 +161,7 @@ local function read_managed_bindings()
       fragment[#fragment + 1] = lines[index]
     end
   end
-  local ok, decoded = pcall(vim.json.decode, "[\n" .. table.concat(fragment, "\n") .. "\n]")
+  local ok, decoded = pcall(jsonc.decode, "[\n" .. table.concat(fragment, "\n") .. "\n]")
   if not ok or type(decoded) ~= "table" then
     return nil, "managed VS Code route block is invalid JSON: " .. tostring(decoded)
   end
@@ -212,12 +219,41 @@ end
 local function replace_binding_block(routes)
   local raw, err = read_raw(M.keybindings_path)
   if not raw then
-    return false, "cannot read VS Code keybindings: " .. tostring(err)
+    if
+      not M.keybindings_path
+      or uv.fs_stat(M.keybindings_path)
+      or not uv.fs_stat(vim.fs.dirname(M.keybindings_path))
+    then
+      return false, "cannot read VS Code keybindings: " .. tostring(err)
+    end
+    raw = "[\n]\n"
   end
   local lines, eol = normalize_lines(raw)
   local first, last = marker_range(lines)
   if not first or not last then
-    return false, "managed route markers are missing from VS Code keybindings.json"
+    if raw:find(begin_marker, 1, true) or raw:find(end_marker, 1, true) then
+      return false, "managed route markers are incomplete; refusing to overwrite keybindings"
+    end
+    local ok, decoded = pcall(jsonc.decode, raw)
+    if not ok or type(decoded) ~= "table" or not vim.islist(decoded) then
+      return false, "VS Code keybindings must be a valid JSONC array before initializing shared routes"
+    end
+    local clean = jsonc.strip(raw)
+    local close = clean:find("]%s*$")
+    if not close then
+      return false, "cannot locate the end of the VS Code keybindings array"
+    end
+    local prefix = raw:sub(1, close - 1)
+    local comma = #decoded > 0 and not clean:sub(1, close - 1):match(",%s*$") and "  ,\n" or ""
+    local block = table.concat(render_binding_block(routes), "\n")
+    local inserted = prefix .. "\n" .. comma .. block .. "\n" .. raw:sub(close)
+    -- Preserve CRLF exactly; prefix/suffix already use the original EOL.
+    inserted = inserted:gsub("\r\n", "\n")
+    if eol == "\r\n" then
+      inserted = inserted:gsub("\n", "\r\n")
+    end
+    local written, write_err = write_raw(M.keybindings_path, inserted)
+    return written, written and true or write_err
   end
   local output = {}
   for index = 1, first - 1 do
@@ -535,7 +571,17 @@ function M.sync(opts)
   if #validation_errors > 0 then
     return false, table.concat(validation_errors, "; ")
   end
-  local bindings = read_managed_bindings()
+  if not M.keybindings_path or not uv.fs_stat(M.keybindings_path) then
+    M.apply_aliases(manifest)
+    if opts.notify then
+      vim.notify("Neovim shared keys loaded; VS Code keybindings are not installed on this host", vim.log.levels.INFO)
+    end
+    return true, false
+  end
+  local bindings, binding_err, status = read_managed_bindings()
+  if not bindings and status ~= "unmanaged" then
+    return false, binding_err
+  end
   if bindings and same_bindings(manifest, bindings) then
     M.apply_aliases(manifest)
     if opts.notify then
@@ -603,11 +649,11 @@ local function watch(path, callback)
   local watcher = uv.new_fs_event()
   local basename = vim.fs.basename(path)
   local generation = 0
-  watcher:start(
+  local started = watcher:start(
     vim.fs.dirname(path),
     {},
     vim.schedule_wrap(function(err, changed)
-      if err or (changed and changed ~= basename) then
+      if err or (changed and vim.fs.basename(vim.fs.normalize(changed)):lower() ~= basename:lower()) then
         return
       end
       generation = generation + 1
@@ -631,6 +677,10 @@ local function watch(path, callback)
       end, 180)
     end)
   )
+  if not started then
+    watcher:close()
+    return
+  end
   M._watchers[#M._watchers + 1] = watcher
 end
 
@@ -674,10 +724,10 @@ function M.setup()
   end)
 
   watch(M.manifest_path, function()
-    return M.push()
+    return M.sync()
   end)
   watch(M.keybindings_path, function()
-    return M.pull()
+    return M.sync()
   end)
 
   vim.api.nvim_create_autocmd("VimLeavePre", {

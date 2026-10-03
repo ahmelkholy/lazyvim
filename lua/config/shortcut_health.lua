@@ -94,6 +94,8 @@ local required_maps = {
     "<S-A-b>",
     "<C-A-n>",
     "<leader>Rj",
+    "<C-b>",
+    "<leader>RB",
     "<leader>Rp",
     "<leader>Rm",
     "<leader>RM",

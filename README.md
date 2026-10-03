@@ -211,6 +211,7 @@ line movement even though the custom `g` prefix menu is also enabled.
 | `Ctrl+P` | Quick Open project files |
 | `Ctrl+Q` | Close the current file and keep its pane |
 | `Ctrl+R` | Open Recent files |
+| `Ctrl+B` | Build/run/preview the current language (normal mode); native scroll-back for other files |
 | `Ctrl+Shift+P` | Command Palette |
 | `Ctrl+Shift+F` | Toggle the Activity Bar in VS Code or Explorer in Neovim |
 | `Ctrl+Alt+Q` | Search in files |
@@ -255,6 +256,47 @@ standalone Neovim meaning travels with it. Use `:SharedKeysHealth`,
 `:SharedKeysSync`, `:SharedKeysPush`, or `:SharedKeysPull` to audit or reconcile
 the routes explicitly. The Space menu needs no duplicate manifest: it is built
 directly from the effective Neovim mappings and buffer-local menus.
+
+The sync understands VS Code JSONC (comments, trailing commas, and Windows
+CRLF). It initializes the marked block in an existing keybindings array without
+removing other shortcuts. If VS Code is not installed, standalone Neovim still
+starts normally; `:SharedKeysPush` can initialize the file once its User folder
+exists. Invalid edits are reported without overwriting them. Automatic parity is
+limited to the marked shared routes, not arbitrary VS Code settings/commands.
+
+### Context-sensitive build/run/preview
+
+`Ctrl+B` and `Space R B` share `lua/config/build.lua`. VS Code delegates to the
+same native extensions as the older shortcuts; standalone Neovim saves the file
+before running the matching tool. Python respects an activated environment or a
+project `.venv`/`venv`; Julia uses the project's environment. R uses `Rscript`,
+MATLAB uses `matlab -batch`, C/C++ use GCC, and LaTeX uses VimTeX or `latexmk`.
+Markdown toggles its preview, SVG keeps its terminal preview, and HTML/CSV open
+in the OS-associated browser/application. Those surfaces are equivalent actions,
+not identical UIs. External language tools must be installed on each machine.
+Unsupported filetypes keep native `Ctrl+B` scrolling; `Space R B` attempts Make
+when a Makefile exists. VS Code Insert-mode build shortcuts stay native.
+
+### Windows verification
+
+Use Neovim **0.11.2 or newer with LuaJIT**, as required by this LazyVim version.
+Install VSCode-Neovim and `vspacecode.whichkey`; language build commands also
+need their corresponding VS Code extensions. Windows reads the init shim from
+`$LOCALAPPDATA/nvim/init-vscode.lua`; Neovim expands that variable. The extension
+discovers `nvim` automatically instead of assuming a Program Files installation.
+For VS Code profiles/Insiders, set `NVIM_VSCODE_USER_DIR` to the actual User or
+profile directory before starting Neovim.
+
+From the Neovim configuration directory, run:
+
+```sh
+nvim --headless -u NONE -l scripts/integration_regression.lua
+nvim --headless "+lua dofile(vim.fn.stdpath('config') .. '/scripts/nvim_regression.lua')"
+```
+
+Then check `:SharedKeysHealth`, `:ShortcutHealth`, and `:checkhealth` interactively.
+The isolated integration tests simulate Windows paths/argv handling; they do not
+replace a real Windows test of shell/tool installations, fonts, or UI focus.
 
 The terminal group opens at twice the former panel height. Its two-terminal
 limit divides that same area side by side instead of stacking extra rows.

@@ -2,99 +2,13 @@ if vim.g.vscode then
   return {}
 end
 
-local function root()
-  return require("config.workspace").root() or vim.fn.getcwd()
-end
-
-local function executable(name)
-  local path = vim.fn.exepath(name)
-  if path == "" then
-    vim.notify(name .. " is not installed or is not on PATH", vim.log.levels.WARN)
-    return nil
-  end
-  return path
-end
-
-local function current_file()
-  if vim.bo.buftype ~= "" then
-    vim.notify("The current buffer is not a filesystem file", vim.log.levels.WARN)
-    return nil
-  end
-  local path = vim.api.nvim_buf_get_name(0)
-  if path == "" or path:match("^%a[%w+.-]*://") then
-    vim.notify("The current buffer has no file path", vim.log.levels.WARN)
-    return nil
-  end
-  local ok, err = pcall(vim.cmd.write)
-  if not ok then
-    vim.notify(err, vim.log.levels.ERROR, { title = "Run file" })
-    return nil
-  end
-  return vim.fs.normalize(vim.fn.fnamemodify(path, ":p"))
-end
-
-local function python()
-  local venv = vim.env.VIRTUAL_ENV
-  if venv and venv ~= "" then
-    local suffix = vim.fn.has("win32") == 1 and "/Scripts/python.exe" or "/bin/python"
-    local candidate = venv .. suffix
-    if vim.fn.executable(candidate) == 1 then
-      return candidate
-    end
-  end
-  return executable(vim.fn.has("win32") == 1 and "python" or "python3")
-end
-
-local function terminal(argv)
-  if argv and argv[1] then
-    Snacks.terminal(argv, { cwd = root() })
-  end
-end
-
-local function run_file(command, args)
-  local command_path = executable(command)
-  if not command_path then
-    return
-  end
-  local file = current_file()
-  if file then
-    terminal(vim.list_extend({ command_path }, args(file)))
-  end
-end
-
-local function compile_and_run(compiler)
-  local compiler_path = executable(compiler)
-  if not compiler_path then
-    return
-  end
-  local file = current_file()
-  if not file then
-    return
-  end
-
-  local output_dir = vim.fn.stdpath("cache") .. "/run"
-  vim.fn.mkdir(output_dir, "p")
-  local output = output_dir .. "/" .. vim.fn.fnamemodify(file, ":t:r")
-  if vim.fn.has("win32") == 1 then
-    output = output .. ".exe"
-  end
-
-  vim.system({ compiler_path, file, "-O0", "-g", "-Wall", "-Wextra", "-o", output }, { text = true }, function(result)
-    vim.schedule(function()
-      if result.code ~= 0 then
-        local stderr = result.stderr or ""
-        local stdout = result.stdout or ""
-        local message = stderr ~= "" and stderr or stdout
-        if message == "" then
-          message = compiler .. " exited with code " .. result.code
-        end
-        vim.notify(message, vim.log.levels.ERROR, { title = compiler .. " failed" })
-        return
-      end
-      terminal({ output })
-    end)
-  end)
-end
+local build = require("config.build")
+local executable = build.executable
+local current_file = build.current_file
+local python = build.python
+local terminal = build.terminal
+local run_file = build.run_file
+local compile_and_run = build.compile_and_run
 
 return {
   {

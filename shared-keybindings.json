@@ -28,7 +28,8 @@
       "command": "vscode-neovim.send",
       "args": "<C-b>",
       "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
-      "nvim": "<C-b>"
+      "nvim": "<C-b>",
+      "description": "Build / Run / Preview current file"
     },
     {
       "key": "ctrl+c",

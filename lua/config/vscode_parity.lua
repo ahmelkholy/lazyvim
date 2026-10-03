@@ -77,7 +77,9 @@ local function group_item(key, name, bindings)
 end
 
 local function show_which_key(items)
-  vscode.call("whichkey.show", { args = { items } }, 1000)
+  -- Opening a menu is asynchronous; waiting here can time out during extension
+  -- activation, particularly on a slower Windows startup.
+  vscode.action("whichkey.show", { args = { items } })
 end
 
 local function feed_native(keys)
@@ -760,11 +762,17 @@ local function insert_mapping(root, mapping)
   }
 end
 
+local function leader_lua(sequence)
+  return ("require('config.vscode_parity').run_leader(%q)"):format(sequence)
+end
+
 local function menu_items(node)
   local items = {}
   for token, child in pairs(node.children) do
     if child.leaf then
-      local item = command_item(whichkey_key(token), child.leaf.name, "vscode-neovim.send", child.leaf.sequence)
+      local item = command_item(whichkey_key(token), child.leaf.name, "vscode-neovim.lua", {
+        leader_lua(child.leaf.sequence),
+      })
       -- A Neovim mapping can also be a prefix (for example, <leader>e and
       -- <leader>er). Which Key supports an item with both a command and nested
       -- bindings, so keep the parent action and every longer mapping visible.
@@ -804,7 +812,21 @@ function M.show_leader()
   show_which_key(build_leader_menu())
 end
 
+function M.run_leader(sequence)
+  -- Execute the effective map after Which Key closes. Re-sending Space through
+  -- the key queue re-enters the menu and races with focus/timeout changes.
+  local mapping = vim.fn.maparg(sequence, "n", false, true)
+  if mapping.callback then
+    mapping.callback()
+  elseif mapping.rhs and mapping.rhs ~= "" then
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(sequence, true, false, true), "m", false)
+  else
+    vscode.notify("This leader mapping is no longer available: " .. sequence, vim.log.levels.WARN)
+  end
+end
+
 local function setup_direct_parity()
+  require("config.build").setup()
   bind("n", "u", counted_action("undo"), "VS Code undo")
   bind("n", "<C-r>", "workbench.action.openRecent", "Recent")
   bind("n", "<C-q>", "workbench.action.closeActiveEditor", "Close current file")
@@ -915,8 +937,8 @@ function M.health()
   local function count(items)
     for _, item in ipairs(items) do
       report.menu_items = report.menu_items + 1
-      if item.command == "vscode-neovim.send" then
-        report.menu_sequences[item.args] = true
+      if item.command == "vscode-neovim.lua" then
+        report.menu_sequences[item.args[1]] = true
       elseif item.command then
         report.errors[#report.errors + 1] = "menu leaf does not return through Neovim: " .. item.name
       end
@@ -934,7 +956,7 @@ function M.health()
     for _, mapping in ipairs(mappings) do
       if mapping.lhs:sub(1, 1) == " " and mapping.lhs ~= " " and mapping.desc and mapping.desc ~= "" then
         local sequence = sequence_for_send(mapping.lhs)
-        if not report.menu_sequences[sequence] then
+        if not report.menu_sequences[leader_lua(sequence)] then
           report.errors[#report.errors + 1] = "leader mapping is missing from the menu: " .. mapping.lhs
         end
       end
