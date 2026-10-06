@@ -102,6 +102,15 @@ Optional language/tool support:
 - Biber for LaTeX projects that use a Biber bibliography backend
 - `rsvg-convert`, ImageMagick, or Inkscape for in-terminal SVG previews
 
+R support resolves `R` and `Rscript` from PATH on each machine. Its language
+server uses the same R user-library `languageserver` package as VS Code, not
+a separate Mason-managed R installation. From the shared VS Code User
+repository, run `Rscript scripts/setup-r.R` after installing R; that setup also
+handles the current macOS system proxy without disabling TLS verification.
+R.nvim installs its bundled `nvimcom` package when needed. Windows requires R
+on PATH and Rtools for R.nvim's native build; VS Code's registry discovery alone
+does not make R available to standalone Neovim.
+
 ## Development Shortcuts
 
 - `<leader>Rj`: open a Julia REPL with `--project=@.`

@@ -38,6 +38,9 @@ return {
       servers = {
         r_language_server = {
           enabled = vim.fn.executable("R") == 1,
+          -- Share the PATH-discovered R and user-library languageserver with
+          -- VS Code rather than installing a second R library through Mason.
+          mason = false,
         },
       },
     },
