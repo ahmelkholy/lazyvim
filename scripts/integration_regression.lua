@@ -16,6 +16,7 @@ local function check(name, callback)
 end
 
 local jsonc = require("config.jsonc")
+require("config.custom_keys").path = config .. "/lua/config/shared_keymaps.lua"
 check("repository workspaces inherit shared Neovim settings", function()
   for _, file in ipairs({ ".vscode/settings.json", ".vscode/nvim.code-workspace" }) do
     local decoded = jsonc.decode(table.concat(vim.fn.readfile(config .. "/" .. file), "\n"))

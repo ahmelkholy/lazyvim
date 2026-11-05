@@ -29,6 +29,7 @@ vim.g.vscode_clipboard = {
   },
 }
 local sync = require("config.key_sync")
+require("config.custom_keys").path = root .. "/lua/config/shared_keymaps.lua"
 local fixture = vim.fn.tempname()
 vim.fn.mkdir(fixture, "p")
 vim.fn.writefile(vim.fn.readfile(root .. "/shared-keybindings.json"), fixture .. "/shared-keybindings.json")
