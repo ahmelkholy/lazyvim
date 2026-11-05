@@ -922,6 +922,7 @@ local function setup_direct_parity()
   bind("n", "gk", move_wrapped("k", false), "Previous display line", { nowait = true })
   bind("v", "gj", move_wrapped("j", true), "Select next display line", { nowait = true })
   bind("v", "gk", move_wrapped("k", true), "Select previous display line", { nowait = true })
+  require("config.display_motions").setup()
 end
 
 function M.health()

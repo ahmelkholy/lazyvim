@@ -69,6 +69,14 @@ local function clean(items)
   end
 end
 clean(calls[#calls][2].args[1])
+for _, key in ipairs({ "j", "k", "ت", "ن" }) do
+  local count = #calls
+  vim.fn.feedkeys(key, "xt")
+  local call = calls[#calls]
+  assert(#calls == count + 1 and call[1] == "cursorMove", "full boot lost display motion: " .. key)
+  assert(call[2].args.by == "wrappedLine" and call[2].args.value == 1)
+  assert(call[2].args.to == ((key == "j" or key == "ت") and "down" or "up"))
+end
 local shared = sync.health()
 assert(shared.ok, table.concat(shared.errors, "\n"))
 vim.fn.delete(fixture, "rf")

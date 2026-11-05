@@ -37,6 +37,7 @@ vim.g.clipboard = {
   cache_enabled = 0,
 }
 require("config.clipboard").setup()
+require("config.display_motions").setup()
 check("Ctrl+C copies lines, Unicode visual selections and Select mode", function()
   buffer({ "Arabic العربية", "second" })
   feed("<C-c>")
@@ -67,6 +68,42 @@ check("embedded clipboard uses the VS Code client", function()
   vim.g.vscode = false
 end)
 
+check("plain j/k follow wrapped screen rows in Normal and Visual mode", function()
+  local columns = vim.o.columns
+  vim.o.columns = 40
+  vim.wo.wrap, vim.wo.linebreak, vim.wo.number, vim.wo.relativenumber = true, false, false, false
+  vim.wo.signcolumn, vim.wo.foldcolumn = "no", "0"
+  local width = vim.api.nvim_win_get_width(0)
+  buffer({ string.rep("x", width * 4), "next file line" })
+  feed("jjj")
+  assert(vim.deep_equal(vim.api.nvim_win_get_cursor(0), { 1, width * 3 }), "j skipped wrapped rows")
+  feed("kkk")
+  assert(vim.deep_equal(vim.api.nvim_win_get_cursor(0), { 1, 0 }), "k skipped wrapped rows")
+  feed("vj")
+  assert(vim.fn.mode() == "v" and vim.api.nvim_win_get_cursor(0)[2] == width)
+  feed("k")
+  assert(vim.fn.mode() == "v" and vim.api.nvim_win_get_cursor(0)[2] == 0)
+  feed("<Esc>")
+  vim.o.columns = columns
+end)
+check("counted j/k, editing operators and literal typing keep native behavior", function()
+  local lines = { string.rep("x", 400), "two", "three", "four", "five" }
+  buffer(lines)
+  feed("3j")
+  assert(vim.api.nvim_win_get_cursor(0)[1] == 4, "counted j must use file lines")
+  feed("2k")
+  assert(vim.api.nvim_win_get_cursor(0)[1] == 2, "counted k must use file lines")
+  buffer(lines)
+  feed("dj")
+  assert(vim.api.nvim_get_current_line() == "three" and vim.api.nvim_buf_line_count(0) == 3)
+  buffer(lines, 3, 0)
+  feed("dk")
+  assert(vim.deep_equal(vim.api.nvim_buf_get_lines(0, 0, -1, false), { lines[1], "four", "five" }))
+  buffer({ "" })
+  feed("ijk<Esc>")
+  assert(vim.api.nvim_get_current_line() == "jk", "Insert mode was remapped")
+end)
+
 for _, variant in ipairs({ "standard", "mac", "phonetic" }) do
   check("Arabic commands and mapped actions with Russian " .. variant, function()
     vim.g.russian_keyboard_variant = variant
@@ -89,6 +126,10 @@ for _, variant in ipairs({ "standard", "mac", "phonetic" }) do
       called.wrapped = true
       return "j"
     end, { expr = true })
+    vim.keymap.set("n", "gk", function()
+      called.up = true
+      return "k"
+    end, { expr = true })
     vim.keymap.set("n", "K", function()
       called.local_map = true
     end, { buffer = true })
@@ -100,6 +141,13 @@ for _, variant in ipairs({ "standard", "mac", "phonetic" }) do
     assert(called.pane, "Arabic leader mapping failed")
     feed("لت")
     assert(called.wrapped and vim.api.nvim_win_get_cursor(0)[1] == 2, "mapped Arabic gj failed")
+    for _, pair in ipairs({ { "ت", "ن" }, variant == "phonetic" and { "й", "к" } or { "о", "л" } }) do
+      called.wrapped, called.up = false, false
+      feed(pair[1])
+      assert(called.wrapped and vim.api.nvim_win_get_cursor(0)[1] == 3, "layout j bypassed gj")
+      feed(pair[2])
+      assert(called.up and vim.api.nvim_win_get_cursor(0)[1] == 2, "layout k bypassed gk")
+    end
     feed(variant == "phonetic" and "л" or "д")
     assert(vim.api.nvim_win_get_cursor(0)[2] == 1, "Russian physical l failed")
     buffer({ "xعy" })

@@ -96,6 +96,38 @@ vim.g.vscode = true
 local parity = require("config.vscode_parity")
 parity.setup()
 
+check("plain j/k reach VS Code wrapped-line actions, with counts and operators kept native", function()
+  local function feed(keys)
+    vim.fn.feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "xt")
+  end
+  vim.cmd("enew!")
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, { "one", "two", "three", "four" })
+  for _, select in ipairs({ false, true }) do
+    if select then
+      feed("v")
+    end
+    for _, key in ipairs({ "j", "k" }) do
+      local count = #calls
+      feed(key)
+      local call = calls[#calls]
+      assert(#calls == count + 1 and call.command == "cursorMove", key .. " bypassed the host mapping")
+      assert(vim.deep_equal(call.opts.args, {
+        to = key == "j" and "down" or "up",
+        by = "wrappedLine",
+        value = 1,
+        select = select,
+      }))
+    end
+    feed("<Esc>")
+  end
+  local count = #calls
+  feed("3j2k")
+  assert(#calls == count and vim.api.nvim_win_get_cursor(0)[1] == 2)
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  feed("dj")
+  assert(#calls == count and vim.api.nvim_get_current_line() == "three")
+end)
+
 check("embedded F11 uses native fullscreen, with Zen kept separate", function()
   vim.fn.maparg("<F11>", "n", false, true).callback()
   assert(calls[#calls].command == "workbench.action.toggleFullScreen")

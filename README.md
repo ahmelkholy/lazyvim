@@ -221,6 +221,12 @@ handles undo because sending Neovim's suspend command would stop the embedded
 process. `u` also undoes, `Ctrl+R` opens Recent in both hosts, and `:redo`
 remains available in standalone Neovim.
 
+Plain `j` and `k` move down/up by displayed wrapped lines in Normal and Visual
+mode in both editors, including Arabic `ت` / `ن` and Russian layout aliases.
+The shared `config.display_motions` mappings remap through `gj` / `gk`, so VS
+Code uses its own displayed rows. Counts such as `3j` still move by file lines;
+operators such as `dj` / `dk` and Insert-mode typing retain their native meaning.
+
 Inside VSCode-Neovim, `gj` and `gk` are explicitly delegated to VS Code's
 wrapped-line cursor command in normal and visual mode. This preserves display
 line movement even though the custom `g` prefix menu is also enabled.

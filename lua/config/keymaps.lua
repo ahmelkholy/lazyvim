@@ -3,6 +3,7 @@
 -- Add any additional keymaps here
 
 local map = vim.keymap.set
+require("config.display_motions").setup()
 
 if vim.g.vscode then
   return
