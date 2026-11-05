@@ -1,5 +1,5 @@
 local api = vim.api
-local config_root = vim.fn.stdpath("config")
+local config_root = vim.env.KEYS_NVIM or vim.fn.stdpath("config")
 local passed = 0
 local failures = {}
 
@@ -146,8 +146,10 @@ check("resource and native options", function()
   assert(lsp.servers.copilot.cmd_env.UV_THREADPOOL_SIZE == "2")
   assert(lsp.servers.julials, "Julia language server is not configured")
   assert(lsp.servers.r_language_server.enabled == (vim.fn.executable("R") == 1))
-  assert(lsp.servers.r_language_server.mason == false,
-    "R must use the same system R/user library as VS Code, not a second Mason library")
+  assert(
+    lsp.servers.r_language_server.mason == false,
+    "R must use the same system R/user library as VS Code, not a second Mason library"
+  )
   local treesitter = require("lazyvim.util").opts("nvim-treesitter")
   assert(vim.tbl_contains(treesitter.ensure_installed, "julia"), "Julia Treesitter parser is not configured")
   local completion = require("lazyvim.util").opts("blink.cmp")
@@ -201,7 +203,9 @@ check("resource and native options", function()
   local multilingual = require("config.multilingual_keys")
   assert(not vim.o.langremap and vim.o.langmap ~= "", "multilingual Normal-mode translation is disabled")
   assert(multilingual.translate("م") == "l" and multilingual.translate("ا") == "h")
-  assert(multilingual.translate("д") == "l" and multilingual.translate("о") == "j")
+  local phonetic = multilingual.russian_variant == "phonetic"
+  assert(multilingual.translate(phonetic and "л" or "д") == "l")
+  assert(multilingual.translate(phonetic and "й" or "о") == "j")
   assert(multilingual.translate("٥") == "5" and multilingual.translate("۵") == "5")
   local symbol = api.nvim_get_hl(0, { name = "SymbolLink", link = false })
   assert(symbol.fg, "SymbolLink has no foreground color")
@@ -256,8 +260,9 @@ check("Arabic and Russian layouts execute physical Vim keys", function()
 
   expect_column("م", 0, 1) -- Arabic physical l
   expect_column("ا", 3, 2) -- Arabic physical h
-  expect_column("д", 0, 1) -- Russian physical l
-  expect_column("р", 3, 2) -- Russian physical h
+  local phonetic = require("config.multilingual_keys").russian_variant == "phonetic"
+  expect_column(phonetic and "л" or "д", 0, 1) -- Russian physical l
+  expect_column(phonetic and "ч" or "р", 3, 2) -- Russian physical h
 
   api.nvim_buf_set_lines(buf, 0, -1, false, { "one two three" })
   expect_column("لا", 12, 8) -- Arabic physical b emits LAM + ALEF

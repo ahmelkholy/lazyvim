@@ -4,12 +4,13 @@
     {
       "key": "space",
       "command": "vscode-neovim.lua",
-      "args": ["require('config.vscode_parity').show_leader()"],
+      "args": [
+        "require('config.vscode_parity').show_leader()"
+      ],
       "when": "editorTextFocus && neovim.init && neovim.mode == 'normal' && !whichkeyVisible && !lazygitFocus",
       "nvim": "<Space>",
       "description": "Leader menu"
     },
-    
     {
       "key": "ctrl+r",
       "command": "workbench.action.openRecent",
@@ -32,11 +33,12 @@
       "description": "Build / Run / Preview current file"
     },
     {
-      "key": "ctrl+c",
+      "key": "ctrl+[KeyC]",
       "command": "vscode-neovim.send",
       "args": "<C-c>",
       "when": "editorTextFocus && neovim.init && neovim.mode != 'insert' && neovim.mode != 'cmdline' && !lazygitFocus",
-      "nvim": "<C-c>"
+      "nvim": "<C-c>",
+      "description": "Copy line or visual selection; cancel pending commands"
     },
     {
       "key": "ctrl+d",

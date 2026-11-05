@@ -1,0 +1,49 @@
+name: Cross-platform editor checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Neovim 0.12.6 from the official release
+        shell: python
+        run: |
+          import os, pathlib, platform, tarfile, urllib.request, zipfile
+          system = platform.system()
+          arch = 'arm64' if platform.machine().lower() in ('arm64', 'aarch64') else 'x86_64'
+          name = 'nvim-win64.zip' if system == 'Windows' else f'nvim-{"macos" if system == "Darwin" else "linux"}-{arch}.tar.gz'
+          destination = pathlib.Path(os.environ['RUNNER_TEMP']) / 'neovim'
+          destination.mkdir()
+          archive = destination / name
+          urllib.request.urlretrieve(f'https://github.com/neovim/neovim/releases/download/v0.12.6/{name}', archive)
+          if system == 'Windows':
+              with zipfile.ZipFile(archive) as package:
+                  package.extractall(destination)
+          else:
+              with tarfile.open(archive) as package:
+                  package.extractall(destination, filter='data')
+          binary = next(destination.glob('*/bin/nvim.exe' if system == 'Windows' else '*/bin/nvim'))
+          with open(os.environ['GITHUB_PATH'], 'a') as path:
+              path.write(str(binary.parent) + '\n')
+      - name: Check clipboard, layouts, editor routes, builds, sync and pane lifecycle
+        shell: python
+        run: |
+          import os, pathlib, subprocess
+          os.environ['NVIM_LOG_FILE'] = str(pathlib.Path(os.environ['RUNNER_TEMP']) / 'nvim.log')
+          for script in ('input_regression', 'integration_regression', 'shared_keys_regression', 'lifecycle_regression'):
+              subprocess.run(['nvim', '--headless', '-i', 'NONE', '-u', 'NONE', '-l', f'scripts/{script}.lua'], check=True)

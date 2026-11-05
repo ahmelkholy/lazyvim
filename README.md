@@ -184,11 +184,25 @@ Neovim's built-in `rightleft` reverses a complete screen line and therefore is
 not used automatically for code or Markdown. Pane and table edges retain the
 remote UI's connected `│` box-drawing separator.
 
-Normal, Visual, Select, and Operator-pending Vim commands follow physical QWERTY
-keys automatically while the OS keyboard is Arabic or Russian. For example,
-Arabic `ا/ت/ن/م` and Russian `р/о/л/д` continue to act as `h/j/k/l`; counts also work
-with Arabic-Indic and Persian digits. Insert mode accepts the active OS layout
-directly, avoiding Neovim-specific switching and double translation on every OS.
+Normal, Visual and Operator-pending commands accept Arabic and Russian layout
+output. Arabic `ا/ت/ن/م` act as `h/j/k/l`; counts accept Arabic-Indic and Persian
+digits. Aliases derived from the active mappings also cover leader paths,
+wrapped-line mappings and buffer-local actions. Insert and search text stays
+literal. The menus show the original shortcut labels, without duplicate aliases.
+
+macOS defaults to **Russian Phonetic**, matching the Karabiner language cycle:
+`ч/й/к/л` are HJKL. Windows/Linux default to standard **JCUKEN** (`р/о/л/д`).
+Set `NVIM_RUSSIAN_LAYOUT=standard`, `mac` (Apple JCUKEN), or `phonetic` (Apple's
+phonetic arrangement) before starting the editor when a machine uses another
+layout; `vim.g.russian_keyboard_variant` is also supported. These are explicit
+layout variants, not detection of the active OS input source.
+
+Arabic PC/Arabic 101 LAM–ALEF sequences are handled, including B/T/G with Shift.
+Some other shifted keys emit ordinary ASCII punctuation; a terminal cannot
+distinguish that punctuation from the same character typed in English. Those
+keys retain their literal meaning. VS Code's Which Key menu uses physical keys
+and supports those shifted menu choices too. Arabic shaping remains a separate
+terminal/font capability; shortcut support does not imply full mixed BiDi.
 
 ## VS Code Muscle-Memory Bridge
 
@@ -338,12 +352,24 @@ From the Neovim configuration directory, run:
 ```sh
 nvim --headless -u NONE -l scripts/integration_regression.lua
 nvim --headless -u NONE -l scripts/shared_keys_regression.lua
+nvim --headless -i NONE -u NONE -l scripts/input_regression.lua
+nvim --headless -i NONE -u NONE -l scripts/lifecycle_regression.lua
 nvim --headless "+lua dofile(vim.fn.stdpath('config') .. '/scripts/nvim_regression.lua')"
 ```
 
 Then check `:SharedKeysHealth`, `:ShortcutHealth`, and `:checkhealth` interactively.
 The isolated integration tests simulate Windows paths/argv handling; they do not
 replace a real Windows test of shell/tool installations, fonts, or UI focus.
+
+GitHub Actions also runs the four isolated suites on Linux, macOS and Windows
+with Neovim 0.12.6. Lifecycle checks use real buffers, windows and terminal jobs:
+closing a file in one pane preserves its other owners and unsaved edits; the
+last owner still offers Save/Discard/Cancel. Hiding terminals preserves their
+processes, and different workspaces keep separate terminal groups.
+
+The 2026-11-05 update refreshed 26 of 70 locked plugins. Neovim itself was
+already at Homebrew's current stable 0.12.6. Run `:Lazy restore` after pulling
+to install the reviewed lockfile versions; restart Neovim and reload VS Code.
 
 The terminal group opens at twice the former panel height. Its two-terminal
 limit divides that same area side by side instead of stacking extra rows.
@@ -540,6 +566,15 @@ nvim --headless "+Lazy! sync" +qa
 
 Yanking with `y`, `yy`, or visual `y` mirrors the copied text to the system
 clipboard. Deletes and changes do not replace that clipboard content.
+Ctrl+C copies the current line in Normal mode or the selected text in Visual/
+Select mode in both editors. Terminal Ctrl+C and command-line cancellation stay
+native. Standalone Insert-mode Ctrl+C retains Vim's exit behavior; in VS Code,
+Insert mode uses the native copy action. Paste external text using the host's
+paste shortcut or `"+p`; plain `p` follows Vim's unnamed register.
+
+The embedded editor uses VS Code's clipboard provider, including remote
+sessions. Standalone Linux needs a provider such as `wl-copy`/`wl-paste` on
+Wayland or `xclip`/`xsel` on X11. SSH retains its non-blocking OSC52 copy provider.
 
 If icons render as boxes, install a Nerd Font and configure your terminal or VS
 Code to use it.

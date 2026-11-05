@@ -276,6 +276,13 @@ check("live file watchers reload shared Lua and VS Code edits", function()
     return not vim.tbl_isempty(vim.fn.maparg("<C-A-l>", "n", false, true))
   end))
   assert(invoke("<C-A-l>") == "Rename")
+  local replacement = sync.keybindings_path .. ".new"
+  write(replacement, read(sync.keybindings_path):gsub('"key": "ctrl%+alt%+l"', '"key": "ctrl+alt+m"'))
+  assert(vim.uv.fs_rename(replacement, sync.keybindings_path))
+  assert(vim.wait(2500, function()
+    return not vim.tbl_isempty(vim.fn.maparg("<C-A-m>", "n", false, true))
+  end), "atomic editor save did not reload")
+  assert(invoke("<C-A-m>") == "Rename")
   for _, watcher in ipairs(sync._watchers) do
     watcher:stop()
     watcher:close()

@@ -36,6 +36,7 @@ end)
 
 check("portable sync initializes an existing JSONC array without removing user keys", function()
   local sync = require("config.key_sync")
+  sync.manifest_path = config .. "/shared-keybindings.json"
   local original = sync.keybindings_path
   local original_manifest = sync.manifest_path
   local directory = vim.fn.tempname()

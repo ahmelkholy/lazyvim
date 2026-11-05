@@ -746,6 +746,9 @@ local function sequence_for_send(lhs)
 end
 
 local function insert_mapping(root, mapping)
+  if (mapping.desc or ""):find("^Layout alias: ") then
+    return
+  end
   if mapping.lhs:sub(1, 1) ~= " " or mapping.lhs == " " or not mapping.desc or mapping.desc == "" then
     return
   end
@@ -835,7 +838,7 @@ local function setup_direct_parity()
   bind("n", "<C-z>", counted_action("undo"), "Undo")
   bind("n", "<C-S-z>", counted_action("redo"), "Redo (Ctrl+R remains Recent)")
   bind("n", "<C-\\>", "workbench.action.toggleEditorWidths", "Toggle current file wide")
-  map("v", "<C-c>", '"+y', { silent = true, desc = "Copy visual selection to system clipboard" })
+  require("config.clipboard").setup()
 
   bind("n", "<C-p>", "workbench.action.quickOpen", "Quick Open")
   bind("n", "<C-S-p>", "workbench.action.showCommands", "Command Palette")
@@ -930,7 +933,7 @@ function M.health()
   }
 
   for _, mapping in ipairs(vim.api.nvim_get_keymap("n")) do
-    if mapping.lhs:sub(1, 1) == " " and mapping.lhs ~= " " then
+    if mapping.lhs:sub(1, 1) == " " and mapping.lhs ~= " " and not (mapping.desc or ""):find("^Layout alias: ") then
       report.leader_maps = report.leader_maps + 1
       if not mapping.desc or mapping.desc == "" then
         report.errors[#report.errors + 1] = "leader mapping has no description: " .. mapping.lhs
@@ -958,7 +961,13 @@ function M.health()
 
   for _, mappings in ipairs({ vim.api.nvim_get_keymap("n"), vim.api.nvim_buf_get_keymap(0, "n") }) do
     for _, mapping in ipairs(mappings) do
-      if mapping.lhs:sub(1, 1) == " " and mapping.lhs ~= " " and mapping.desc and mapping.desc ~= "" then
+      if
+        mapping.lhs:sub(1, 1) == " "
+        and mapping.lhs ~= " "
+        and mapping.desc
+        and mapping.desc ~= ""
+        and not mapping.desc:find("^Layout alias: ")
+      then
         local sequence = sequence_for_send(mapping.lhs)
         if not report.menu_sequences[leader_lua(sequence)] then
           report.errors[#report.errors + 1] = "leader mapping is missing from the menu: " .. mapping.lhs

@@ -23,7 +23,7 @@ local function vscode_user_dir()
     local appdata = vim.env.APPDATA
     return appdata and vim.fs.normalize(appdata .. "/Code/User") or nil
   end
-  return vim.fs.normalize(vim.fn.expand("~/.config/Code/User"))
+  return vim.fs.normalize((vim.env.XDG_CONFIG_HOME or vim.fn.expand("~/.config")) .. "/Code/User")
 end
 
 local user_dir = vscode_user_dir()
@@ -425,6 +425,12 @@ local function one_vscode_key(value)
     return nil, "empty VS Code key"
   end
   local base = parts[#parts]:lower()
+  local scan = base:match("^%[key([a-z])%]$") or base:match("^%[digit([0-9])%]$")
+  if scan then
+    base = scan
+  elseif base:sub(1, 1) == "[" and #base > 1 then
+    return nil, "unsupported VS Code scan code: " .. base
+  end
   local modifiers = {}
   for index = 1, #parts - 1 do
     local modifier = modifier_names[parts[index]:lower()]
@@ -655,6 +661,10 @@ function M.apply_aliases(manifest)
         end
       end
     end
+  end
+  local multilingual = package.loaded["config.multilingual_keys"]
+  if multilingual then
+    multilingual.refresh_aliases()
   end
 end
 
@@ -912,14 +922,16 @@ local function watch(path, callback)
   if not path or not uv.fs_stat(vim.fs.dirname(path)) then
     return
   end
-  local watcher = uv.new_fs_event()
-  local basename = vim.fs.basename(path)
+  -- File polling survives atomic saves and macOS directory-event coalescing.
+  -- Only three small configuration files are observed; self-writes are still
+  -- filtered by content below. No keyboard input or document data is watched.
+  local watcher = uv.new_fs_poll()
   local generation = 0
   local started = watcher:start(
-    vim.fs.dirname(path),
-    {},
-    vim.schedule_wrap(function(err, changed)
-      if err or (changed and vim.fs.basename(vim.fs.normalize(changed)):lower() ~= basename:lower()) then
+    path,
+    250,
+    vim.schedule_wrap(function(err)
+      if err then
         return
       end
       generation = generation + 1

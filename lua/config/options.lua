@@ -4,7 +4,7 @@
 
 vim.g.lazyvim_python_lsp = "pyright"
 vim.g.lazyvim_python_ruff = "ruff"
-vim.opt.clipboard = "unnamedplus"
+require("config.clipboard").options()
 vim.opt.autoread = true
 
 -- Normal/Visual/Operator Vim commands keep following the physical qwerty
@@ -98,7 +98,7 @@ vim.g.loaded_ruby_provider = 0
 -- which can make `nvim .` look frozen. Keep system clipboard copies and cache
 -- our own yanks locally; use the terminal's normal paste shortcut for external
 -- clipboard text.
-if vim.env.SSH_TTY and not vim.env.DISPLAY and not vim.env.WAYLAND_DISPLAY then
+if not vim.g.vscode and vim.env.SSH_TTY and not vim.env.DISPLAY and not vim.env.WAYLAND_DISPLAY then
   local cache = {}
   local function copy(reg)
     local send = require("vim.ui.clipboard.osc52").copy(reg)

@@ -16,15 +16,30 @@ local function add_alphabet(from, to)
   end
 end
 
--- Russian JCUKEN letters occupy the same physical letter keys on the common
--- Linux, macOS, and Windows layouts. Mapping only non-ASCII output keeps every
--- English punctuation command unchanged when the OS layout is English.
-add_alphabet("йцукенгшщзхъфывапролджэячсмитьбю", "qwertyuiop[]asdfghjkl;'zxcvbnm,.")
-add_alphabet("ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ", 'QWERTYUIOP{}ASDFGHJKL:"ZXCVBNM<>')
-
 local system_name = (vim.uv or vim.loop).os_uname().sysname
-local russian_variant = vim.g.russian_keyboard_variant or (system_name == "Darwin" and "mac" or "standard")
-if russian_variant == "mac" then
+local russian_variant = vim.g.russian_keyboard_variant
+  or vim.env.NVIM_RUSSIAN_LAYOUT
+  or (system_name == "Darwin" and "phonetic" or "standard")
+assert(vim.tbl_contains({ "phonetic", "mac", "standard" }, russian_variant), "Unknown NVIM_RUSSIAN_LAYOUT")
+M.russian_variant = russian_variant
+local russian_from, russian_to
+if russian_variant == "phonetic" then
+  -- Apple's Russian Phonetic, used by the Mac input-source cycle.
+  russian_from, russian_to =
+    "яшертыуиопюжасдфгчйклзхцвбнмщ", "qwertyuiop[]asdfghjklzxcvbnm`"
+else
+  russian_from, russian_to =
+    "йцукенгшщзхъфывапролджэячсмитьбю", "qwertyuiop[]asdfghjkl;'zxcvbnm,."
+end
+add_alphabet(russian_from, russian_to)
+local shifted = { ["["] = "{", ["]"] = "}", [";"] = ":", ["'"] = '"', [","] = "<", ["."] = ">", ["`"] = "~" }
+local russian_upper = russian_to:gsub(".", function(c)
+  return shifted[c] or c:upper()
+end)
+add_alphabet(vim.fn.toupper(russian_from), russian_upper)
+if russian_variant == "phonetic" then
+  -- Other phonetic layouts differ; select the variant explicitly on that host.
+elseif russian_variant == "mac" then
   add("ё", "\\")
   add("Ё", "|")
 else
@@ -74,6 +89,7 @@ local arabic = {
   { "ُ", "E" },
   { "ٌ", "R" },
   { "إ", "Y" },
+  { "‘", "U" },
   { "÷", "I" },
   { "×", "O" },
   { "؛", "P" },
@@ -84,6 +100,8 @@ local arabic = {
   { "،", "K" },
   { "ْ", "X" },
   { "آ", "N" },
+  { "’", "M" },
+  { "ّ", "~" },
   { "؟", "?" },
   -- Some OS layouts emit a presentation-form ligature for the physical
   -- b/T/G/B keys instead of the two logical LAM + ALEF codepoints.
@@ -129,7 +147,9 @@ function M.translate(character)
 end
 
 function M.russian_keymap()
-  if russian_variant == "mac" then
+  if russian_variant == "phonetic" then
+    return nil -- macOS owns phonetic typing; Neovim ships no exact input keymap.
+  elseif russian_variant == "mac" then
     return "russian-jcukenmac"
   elseif system_name:match("Windows") then
     return "russian-jcukenwin"
@@ -153,7 +173,92 @@ function M.setup()
     vim.keymap.set({ "n", "x", "o" }, sequence, command, {
       desc = "Arabic layout: physical " .. command,
       silent = true,
+      remap = true,
     })
+  end
+  local pending = false
+  local function refresh()
+    if pending then
+      return
+    end
+    pending = true
+    vim.schedule(function()
+      pending = false
+      M.refresh_aliases()
+    end)
+  end
+  local group = vim.api.nvim_create_augroup("multilingual_mapping_aliases", { clear = true })
+  vim.api.nvim_create_autocmd("User", { group = group, pattern = { "VeryLazy", "LazyLoad" }, callback = refresh })
+  vim.api.nvim_create_autocmd({ "BufEnter", "FileType", "LspAttach" }, { group = group, callback = refresh })
+end
+
+-- langmap handles built-in commands, but does not reliably resolve translated
+-- multi-key user/plugin mappings. Derive aliases from the effective maps,
+-- including buffer-local maps, without maintaining another shortcut list.
+local alias_prefix = "Layout alias: "
+local layouts = { arabic = {}, russian = {} }
+for _, pair in ipairs(arabic) do
+  if not layouts.arabic[pair[2]] then
+    layouts.arabic[pair[2]] = pair[1]
+  end
+end
+for command, sequence in pairs({ b = "لا", T = "لإ", G = "لأ", B = "لآ" }) do
+  layouts.arabic[command] = sequence
+end
+for index = 0, vim.fn.strchars(russian_from) - 1 do
+  layouts.russian[russian_to:sub(index + 1, index + 1)] = vim.fn.strcharpart(russian_from, index, 1)
+  layouts.russian[russian_upper:sub(index + 1, index + 1)] = vim.fn.strcharpart(vim.fn.toupper(russian_from), index, 1)
+end
+
+local function translated(lhs, layout)
+  local result, index = {}, 1
+  while index <= #lhs do
+    local token = lhs:sub(index):match("^<[^>]+>")
+    if token then
+      result[#result + 1] = token
+      index = index + #token
+    else
+      local c = lhs:sub(index, index)
+      result[#result + 1] = layout[c] or c
+      index = index + 1
+    end
+  end
+  return table.concat(result)
+end
+
+function M.refresh_aliases()
+  for _, mode in ipairs({ "n", "x", "o" }) do
+    for _, buffer in ipairs({ false, vim.api.nvim_get_current_buf() }) do
+      local maps = buffer and vim.api.nvim_buf_get_keymap(buffer, mode) or vim.api.nvim_get_keymap(mode)
+      local occupied = {}
+      for _, mapping in ipairs(maps) do
+        if (mapping.desc or ""):sub(1, #alias_prefix) == alias_prefix then
+          pcall(vim.keymap.del, mode, mapping.lhs, buffer and { buffer = buffer } or {})
+        else
+          occupied[mapping.lhs] = true
+        end
+      end
+      for _, mapping in ipairs(maps) do
+        if
+          not mapping.lhs:find("[^%z\1-\127]")
+          and not mapping.lhs:find("<Plug>", 1, true)
+          and (mapping.desc or ""):sub(1, #alias_prefix) ~= alias_prefix
+        then
+          for _, layout in pairs(layouts) do
+            local alias = translated(mapping.lhs, layout)
+            if alias ~= mapping.lhs and not occupied[alias] then
+              vim.keymap.set(mode, alias, mapping.lhs, {
+                remap = true,
+                silent = mapping.silent == 1,
+                buffer = buffer or nil,
+                desc = alias_prefix .. (mapping.desc or mapping.lhs),
+              })
+              occupied[alias] = true
+            end
+          end
+        end
+      end
+    end
   end
 end
 

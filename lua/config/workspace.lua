@@ -229,9 +229,9 @@ local function clean_history(win)
   return cleaned
 end
 
-local function buffer_is_visible(buf)
+local function buffer_is_visible(buf, excluded_win)
   for _, win in ipairs(vim.api.nvim_list_wins()) do
-    if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf then
+    if win ~= excluded_win and vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf then
       return true
     end
   end
@@ -240,7 +240,7 @@ end
 
 local function buffer_belongs_to_another_pane(buf, excluded_win)
   for win, history in pairs(histories) do
-    if win ~= excluded_win then
+    if win ~= excluded_win and vim.api.nvim_win_is_valid(win) then
       for _, candidate in ipairs(history) do
         if candidate == buf then
           return true
@@ -1242,8 +1242,11 @@ function M.close_current_tab()
   local current = vim.api.nvim_win_get_buf(win)
   record_buffer(win, current)
   local tabs = M.tabs(win)
+  local shared = buffer_is_visible(current, win) or buffer_belongs_to_another_pane(current, win)
 
-  if vim.api.nvim_get_option_value("modified", { buf = current }) then
+  -- Closing a tab in one pane must not discard the file (or its unsaved edits)
+  -- in another pane/workspace. Ask about saving only when closing its last owner.
+  if not shared and vim.api.nvim_get_option_value("modified", { buf = current }) then
     local name = vim.api.nvim_buf_get_name(current)
     name = name ~= "" and vim.fn.fnamemodify(name, ":t") or "Untitled"
     local ok, choice = pcall(vim.fn.confirm, ('Save changes to "%s"?'):format(name), "&Yes\n&No\n&Cancel")
@@ -1263,13 +1266,22 @@ function M.close_current_tab()
     local current_index = vim.fn.index(tabs, current) + 1
     local target_index = current_index < #tabs and current_index + 1 or current_index - 1
     vim.api.nvim_win_set_buf(win, tabs[target_index])
+  elseif shared then
+    vim.api.nvim_win_set_buf(win, vim.api.nvim_create_buf(true, false))
   end
 
-  local ok, err = pcall(vim.api.nvim_buf_delete, current, { force = true })
-  if not ok then
-    vim.notify(err, vim.log.levels.ERROR, { title = "Close pane tab" })
-    return false
+  if shared then
+    histories[win] = vim.tbl_filter(function(buf)
+      return buf ~= current
+    end, histories[win] or {})
+  else
+    local ok, err = pcall(vim.api.nvim_buf_delete, current, { force = true })
+    if not ok then
+      vim.notify(err, vim.log.levels.ERROR, { title = "Close pane tab" })
+      return false
+    end
   end
+  close_cycle_menu()
   M.schedule_empty_pane_cleanup()
   return true
 end

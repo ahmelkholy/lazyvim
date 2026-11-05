@@ -16,18 +16,6 @@ vim.api.nvim_create_user_command("ShortcutHealth", function()
   require("config.shortcut_health").show()
 end, { desc = "Audit leader and custom shortcut availability" })
 
--- Match Ctrl+C in graphical editors: every yank is also copied to the system
--- clipboard without changing the normal behavior of delete/change registers.
-vim.api.nvim_create_autocmd("TextYankPost", {
-  group = vim.api.nvim_create_augroup("system_clipboard_yanks", { clear = true }),
-  callback = function()
-    if vim.v.event.operator == "y" then
-      pcall(vim.fn.setreg, "+", vim.v.event.regcontents, vim.v.event.regtype)
-    end
-  end,
-  desc = "Mirror yanks to the system clipboard",
-})
-
 -- Like VS Code, notice files changed by formatters, Git, or another editor as
 -- soon as Neovim regains focus. Unmodified buffers reload automatically;
 -- modified buffers retain their work and receive Neovim's normal warning.
