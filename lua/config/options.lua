@@ -96,7 +96,7 @@ vim.g.loaded_ruby_provider = 0
 -- SSH terminals reliably support OSC52 writes, but many do not answer OSC52
 -- reads. Neovim's stock paste provider waits up to ten seconds for that reply,
 -- which can make `nvim .` look frozen. Keep system clipboard copies and cache
--- our own yanks locally; use the terminal's normal paste shortcut for external
+-- our own copies locally; use the terminal's normal paste shortcut for external
 -- clipboard text.
 if not vim.g.vscode and vim.env.SSH_TTY and not vim.env.DISPLAY and not vim.env.WAYLAND_DISPLAY then
   local cache = {}

@@ -93,6 +93,26 @@ package.loaded.vscode = {
   end,
 }
 vim.g.vscode = true
+local copied, copy_calls = { {}, "v" }, 0
+vim.g.vscode_clipboard = {
+  name = "isolated integration clipboard",
+  copy = {
+    ["+"] = function(lines, regtype)
+      copied = { vim.deepcopy(lines), regtype }
+      copy_calls = copy_calls + 1
+    end,
+    ["*"] = function() end,
+  },
+  paste = {
+    ["+"] = function()
+      return copied
+    end,
+    ["*"] = function()
+      return { {}, "v" }
+    end,
+  },
+  cache_enabled = 0,
+}
 local parity = require("config.vscode_parity")
 parity.setup()
 
@@ -126,6 +146,31 @@ check("plain j/k reach VS Code wrapped-line actions, with counts and operators k
   vim.api.nvim_win_set_cursor(0, { 1, 0 })
   feed("dj")
   assert(#calls == count and vim.api.nvim_get_current_line() == "three")
+end)
+
+check("register prefixes run before queued deletes in embedded Neovim", function()
+  local function reset()
+    vim.cmd("enew!")
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "one", "two", "three" })
+    vim.api.nvim_win_set_cursor(0, { 1, 0 })
+    copied = { { "keep clipboard" }, "v" }
+    copy_calls = 0
+  end
+  reset()
+  vim.fn.feedkeys('"_dd', "xt")
+  assert(vim.api.nvim_get_current_line() == "two")
+  assert(copy_calls == 0 and copied[1][1] == "keep clipboard")
+  reset()
+  vim.fn.feedkeys('"add', "xt")
+  assert(vim.fn.getreg("a") == "one\n" and copied[1][1] == "one")
+  reset()
+  vim.fn.feedkeys('"+dd', "xt")
+  assert(copy_calls == 1 and copied[1][1] == "one", "explicit clipboard delete was copied twice")
+  reset()
+  vim.api.nvim_win_set_cursor(0, { 3, 0 })
+  vim.fn.feedkeys("ggdj", "xt")
+  assert(vim.deep_equal(copied, { { "one", "two", "" }, "V" }))
+  assert(vim.api.nvim_get_current_line() == "three", "native prefix reordered a queued delete")
 end)
 
 check("embedded F11 uses native fullscreen, with Zen kept separate", function()

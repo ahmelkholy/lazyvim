@@ -3,6 +3,29 @@ local config_root = vim.env.KEYS_NVIM or vim.fn.stdpath("config")
 local passed = 0
 local failures = {}
 
+-- Regression deletes/yanks must never replace the user's real clipboard.
+local copied = { {}, "v" }
+vim.g.clipboard = {
+  name = "isolated standalone regression clipboard",
+  copy = {
+    ["+"] = function(lines, regtype)
+      copied = { vim.deepcopy(lines), regtype }
+    end,
+    ["*"] = function() end,
+  },
+  paste = {
+    ["+"] = function()
+      return copied
+    end,
+    ["*"] = function()
+      return { {}, "v" }
+    end,
+  },
+  cache_enabled = 0,
+}
+vim.g.loaded_clipboard_provider = nil
+vim.cmd("runtime autoload/provider/clipboard.vim")
+
 local function check(name, callback)
   local ok, err = xpcall(callback, debug.traceback)
   if ok then
@@ -29,6 +52,19 @@ end)
 check("shortcut audit", function()
   local report = require("config.shortcut_health").check()
   assert(report.ok, table.concat(report.errors, "\n"))
+end)
+
+check("delete and x copy after full plugin startup", function()
+  vim.cmd("silent! enew!")
+  api.nvim_buf_set_lines(0, 0, -1, false, { "العربية", "cut", "keep" })
+  api.nvim_win_set_cursor(0, { 1, 0 })
+  vim.fn.feedkeys("x", "xt")
+  assert(vim.deep_equal(copied, { { "ا" }, "v" }))
+  vim.fn.feedkeys("dd", "xt")
+  assert(vim.deep_equal(copied, { { "لعربية", "" }, "V" }))
+  vim.fn.feedkeys('"_dd', "xt")
+  assert(vim.deep_equal(copied, { { "لعربية", "" }, "V" }))
+  vim.cmd("silent! enew!")
 end)
 
 check("Find and undo/redo match VS Code while Ctrl+R stays Recent", function()

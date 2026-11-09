@@ -16,17 +16,24 @@ package.loaded.vscode = {
   get_config = function() end,
   update_config = function() end,
 }
+local copied = { {}, "v" }
 vim.g.vscode_clipboard = {
   name = "isolated VS Code clipboard",
-  copy = { ["+"] = function() end, ["*"] = function() end },
+  copy = {
+    ["+"] = function(lines, regtype)
+      copied = { vim.deepcopy(lines), regtype }
+    end,
+    ["*"] = function() end,
+  },
   paste = {
     ["+"] = function()
-      return { {}, "v" }
+      return copied
     end,
     ["*"] = function()
       return { {}, "v" }
     end,
   },
+  cache_enabled = 0,
 }
 local sync = require("config.key_sync")
 require("config.custom_keys").path = root .. "/lua/config/shared_keymaps.lua"
@@ -77,6 +84,20 @@ for _, key in ipairs({ "j", "k", "ت", "ن" }) do
   assert(call[2].args.by == "wrappedLine" and call[2].args.value == 1)
   assert(call[2].args.to == ((key == "j" or key == "ت") and "down" or "up"))
 end
+vim.api.nvim_buf_set_lines(0, 0, -1, false, { "العربية", "delete", "keep" })
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+vim.fn.feedkeys("x", "xt")
+assert(vim.deep_equal(copied, { { "ا" }, "v" }), "embedded x did not copy to the VS Code client")
+vim.fn.feedkeys("dd", "xt")
+assert(
+  vim.deep_equal(copied, { { "لعربية", "" }, "V" }),
+  "embedded dd did not copy to the VS Code client: " .. vim.inspect(copied)
+)
+vim.fn.feedkeys('"_dd', "xt")
+assert(
+  vim.deep_equal(copied, { { "لعربية", "" }, "V" }),
+  "black-hole deletion changed the client clipboard: " .. vim.inspect(copied)
+)
 local shared = sync.health()
 assert(shared.ok, table.concat(shared.errors, "\n"))
 vim.fn.delete(fixture, "rf")

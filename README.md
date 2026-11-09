@@ -571,7 +571,12 @@ nvim --headless "+Lazy! sync" +qa
 ## Troubleshooting
 
 Yanking with `y`, `yy`, or visual `y` mirrors the copied text to the system
-clipboard. Deletes and changes do not replace that clipboard content.
+clipboard. Deleting with `d` (including `dd`, `dw`, `D`) or `x`/`X`, including
+Visual selections and Arabic commands, also copies the deleted text there in
+both standalone Neovim and VS Code. Explicit black-hole operations (`"_dd`,
+`"_x`) discard without copying. Change operators (`c`) retain their local-register
+behavior. These rules apply on Mac, Windows and Linux with the host's clipboard
+provider.
 Ctrl+C copies the current line in Normal mode or the selected text in Visual/
 Select mode in both editors. Terminal Ctrl+C and command-line cancellation stay
 native. Standalone Insert-mode Ctrl+C retains Vim's exit behavior; in VS Code,

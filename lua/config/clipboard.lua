@@ -1,7 +1,7 @@
 local M = {}
 
 function M.options()
-  -- Keep delete/change registers local. Only an explicit copy updates the OS.
+  -- Keep Vim's register/paste behavior; mirror yanks and deletes below.
   vim.opt.clipboard = ""
   if vim.g.vscode and type(vim.g.vscode_clipboard) == "table" then
     -- The clipboard belongs to the VS Code client, including remote sessions.
@@ -17,11 +17,12 @@ function M.setup()
   vim.api.nvim_create_autocmd("TextYankPost", {
     group = vim.api.nvim_create_augroup("system_clipboard_yanks", { clear = true }),
     callback = function()
-      if vim.v.event.operator == "y" and vim.v.event.regname ~= "+" and vim.v.event.regname ~= "_" then
+      local operator = vim.v.event.operator
+      if (operator == "y" or operator == "d") and vim.v.event.regname ~= "+" and vim.v.event.regname ~= "_" then
         vim.fn.setreg("+", vim.v.event.regcontents, vim.v.event.regtype)
       end
     end,
-    desc = "Mirror yanks, but not deletions, to the system clipboard",
+    desc = "Copy yanked or deleted text to the system clipboard, except black-hole operations",
   })
 end
 

@@ -86,7 +86,9 @@ local function feed_native(keys)
   local count = vim.v.count
   local sequence = (count > 0 and tostring(count) or "") .. keys
   local termcodes = vim.api.nvim_replace_termcodes(sequence, true, false, true)
-  vim.api.nvim_feedkeys(termcodes, "n", false)
+  -- Prefixes (for example "_ in "_dd) must precede keys already queued by
+  -- fast typing or a macro. Appending would execute the delete first.
+  vim.api.nvim_feedkeys(termcodes, "ni", false)
 end
 
 local function run_menu_item(item)
