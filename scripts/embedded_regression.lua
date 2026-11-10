@@ -98,6 +98,17 @@ assert(
   vim.deep_equal(copied, { { "لعربية", "" }, "V" }),
   "black-hole deletion changed the client clipboard: " .. vim.inspect(copied)
 )
+for _, key in ipairs({ "p", "P", "ح" }) do
+  vim.cmd("enew!")
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, { "ab" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  vim.fn.setreg('"', "stale internal register")
+  copied = { { "client " .. key }, "v" }
+  vim.fn.feedkeys(key, "xt")
+  local expected = key == "P" and "client Pab" or ("aclient " .. key .. "b")
+  assert(vim.api.nvim_get_current_line() == expected, "embedded paste ignored the client clipboard: " .. key)
+end
+assert(require("yanky.utils").get_default_register() == "+", "paste history uses a different clipboard")
 local shared = sync.health()
 assert(shared.ok, table.concat(shared.errors, "\n"))
 vim.fn.delete(fixture, "rf")

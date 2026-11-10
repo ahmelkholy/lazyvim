@@ -1,3 +1,18 @@
+-- +luafile runs during startup, when Neovim intentionally defers implicit
+-- clipboard access. Exercise the same ready state as real keyboard input.
+if vim.v.vim_did_enter == 0 then
+  local script = debug.getinfo(1, "S").source:sub(2)
+  vim.api.nvim_create_autocmd("VimEnter", {
+    once = true,
+    callback = function()
+      vim.schedule(function()
+        dofile(script)
+      end)
+    end,
+  })
+  return
+end
+
 local api = vim.api
 local config_root = vim.env.KEYS_NVIM or vim.fn.stdpath("config")
 local passed = 0
@@ -59,11 +74,37 @@ check("delete and x copy after full plugin startup", function()
   api.nvim_buf_set_lines(0, 0, -1, false, { "العربية", "cut", "keep" })
   api.nvim_win_set_cursor(0, { 1, 0 })
   vim.fn.feedkeys("x", "xt")
-  assert(vim.deep_equal(copied, { { "ا" }, "v" }))
+  assert(vim.deep_equal(copied, { { "ا" }, "v" }), vim.inspect({ copied = copied, clipboard = vim.o.clipboard }))
   vim.fn.feedkeys("dd", "xt")
   assert(vim.deep_equal(copied, { { "لعربية", "" }, "V" }))
   vim.fn.feedkeys('"_dd', "xt")
   assert(vim.deep_equal(copied, { { "لعربية", "" }, "V" }))
+  vim.cmd("silent! enew!")
+end)
+
+check("p/P and Arabic p read fresh system clipboard text after full plugin startup", function()
+  for _, key in ipairs({ "p", "P", "ح" }) do
+    vim.cmd("silent! enew!")
+    api.nvim_buf_set_lines(0, 0, -1, false, { "ab" })
+    api.nvim_win_set_cursor(0, { 1, 0 })
+    vim.fn.setreg('"', "stale internal register")
+    copied = { { "external " .. key }, "v" }
+    vim.fn.feedkeys(key, "xt")
+    local expected = key == "P" and "external Pab" or ("aexternal " .. key .. "b")
+    assert(
+      api.nvim_get_current_line() == expected,
+      "standalone paste ignored the system clipboard: "
+        .. key
+        .. " "
+        .. vim.inspect({
+          text = api.nvim_get_current_line(),
+          copied = copied,
+          clipboard = vim.o.clipboard,
+          mapping = vim.fn.maparg(key, "n", false, true),
+        })
+    )
+  end
+  assert(require("yanky.utils").get_default_register() == "+", "paste history uses a different clipboard")
   vim.cmd("silent! enew!")
 end)
 

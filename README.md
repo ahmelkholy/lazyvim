@@ -570,22 +570,25 @@ nvim --headless "+Lazy! sync" +qa
 
 ## Troubleshooting
 
-Yanking with `y`, `yy`, or visual `y` mirrors the copied text to the system
-clipboard. Deleting with `d` (including `dd`, `dw`, `D`) or `x`/`X`, including
-Visual selections and Arabic commands, also copies the deleted text there in
-both standalone Neovim and VS Code. Explicit black-hole operations (`"_dd`,
-`"_x`) discard without copying. Change operators (`c`) retain their local-register
-behavior. These rules apply on Mac, Windows and Linux with the host's clipboard
-provider.
+The system clipboard is the default Vim register (`clipboard=unnamedplus`) in
+both standalone Neovim and VS Code. Copy text in any application, then use
+`p` or `P` to paste it, including Arabic `ح`. The paste-history plugin uses the
+same clipboard and reads fresh contents without requiring a focus change.
+Normal `y`, `d`, `c`, `x` and their variants copy the affected text there too.
+Explicit named registers such as `"ap` remain independent, and black-hole
+operations (`"_dd`, `"_x`) discard without copying. Visual `P` replaces a
+selection while keeping the clipboard available for another paste.
 Ctrl+C copies the current line in Normal mode or the selected text in Visual/
 Select mode in both editors. Terminal Ctrl+C and command-line cancellation stay
 native. Standalone Insert-mode Ctrl+C retains Vim's exit behavior; in VS Code,
 Insert mode uses the native copy action. Paste external text using the host's
-paste shortcut or `"+p`; plain `p` follows Vim's unnamed register.
+paste shortcut, `p`/`P`, or `"+p`.
 
 The embedded editor uses VS Code's clipboard provider, including remote
 sessions. Standalone Linux needs a provider such as `wl-copy`/`wl-paste` on
-Wayland or `xclip`/`xsel` on X11. SSH retains its non-blocking OSC52 copy provider.
+Wayland or `xclip`/`xsel` on X11. Standalone SSH retains its non-blocking OSC52
+copy provider, which caches the editor's own copies; use the terminal client's
+paste shortcut for newly copied external text when clipboard reads are unavailable.
 
 If icons render as boxes, install a Nerd Font and configure your terminal or VS
 Code to use it.

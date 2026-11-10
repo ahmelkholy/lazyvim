@@ -162,7 +162,7 @@ check("register prefixes run before queued deletes in embedded Neovim", function
   assert(copy_calls == 0 and copied[1][1] == "keep clipboard")
   reset()
   vim.fn.feedkeys('"add', "xt")
-  assert(vim.fn.getreg("a") == "one\n" and copied[1][1] == "one")
+  assert(vim.fn.getreg("a") == "one\n" and copied[1][1] == "keep clipboard")
   reset()
   vim.fn.feedkeys('"+dd', "xt")
   assert(copy_calls == 1 and copied[1][1] == "one", "explicit clipboard delete was copied twice")
